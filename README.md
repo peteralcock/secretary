@@ -5,6 +5,8 @@ Your Ai-Powered Property Management Inbox Assistant
 **Transform your property management workflows with Secretary, an intelligent system designed to automate email handling, streamline tenant communication, and integrate seamlessly with your operations.**
 Secretary leverages advanced AI (Langchain & Large Language Models) to read, understand, categorize, and respond to emails from tenants, prospects, and other contacts. It's built to save property managers valuable time, reduce manual effort, and improve response consistency. This system is ideal for property management software companies looking to embed cutting-edge AI capabilities into their platforms.
 ![Secretary](demo.gif?raw=true "Demo")
+![Dashboard](Dashboard.jpg?raw=true "Dashboar")
+
 
 ## Why Secretary for Property Management Software?
 
