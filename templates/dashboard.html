@@ -14,7 +14,7 @@
                 <div class="text-gray-600">Total Emails</div>
             </div>
             <div class="bg-white rounded-xl shadow-lg p-6 text-center">
-                <div class="text-2xl font-bold text-purple-700">{{ category_counts|sum }}</div>
+                <div class="text-2xl font-bold text-purple-700">{{ category_counts.values()|sum }}</div>
                 <div class="text-gray-600">Total Issues</div>
             </div>
             <div class="bg-white rounded-xl shadow-lg p-6 text-center">
@@ -28,7 +28,9 @@
         </div>
         <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
             <h2 class="text-xl font-semibold mb-4 text-blue-700">Email & Issue Overview</h2>
-            <canvas id="summaryChart"></canvas>
+            <div class="flex justify-center">
+                <canvas id="summaryChart" width="220" height="220" style="max-width:220px;max-height:220px;"></canvas>
+            </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <div class="bg-white rounded-xl shadow-lg p-6">
@@ -117,7 +119,7 @@
                 datasets: [{
                     data: [
                         {{ emails|length }},
-                        {{ category_counts|sum }},
+                        {{ category_counts.values()|sum }},
                         {{ emails|selectattr('replied')|select|list|length }}
                     ],
                     backgroundColor: [
@@ -127,7 +129,12 @@
                     ]
                 }]
             },
-            options: {responsive: true, plugins: {legend: {position: 'bottom'}}}
+            options: {
+                responsive: false,
+                maintainAspectRatio: false,
+                plugins: {legend: {position: 'bottom'}},
+                cutout: '70%',
+            }
         });
         // Issues by Day
         new Chart(document.getElementById('issuesByDay'), {

@@ -88,10 +88,14 @@ def dashboard():
     unaddressed = [e for e in emails if not e["replied"]]
     # Issue counts by category
     category_counts = Counter(e["category"] for e in emails)
+    category_counts_dict = {k: int(v) for k, v in category_counts.items()}
     # Issues by day/week/month
     by_day = Counter(e["dt"].date() for e in emails)
+    by_day = {str(k): v for k, v in by_day.items()}
     by_week = Counter(e["dt"].strftime("%Y-W%U") for e in emails)
+    by_week = {str(k): v for k, v in by_week.items()}
     by_month = Counter(e["dt"].strftime("%Y-%m") for e in emails)
+    by_month = {str(k): v for k, v in by_month.items()}
     # Replied vs not replied by period
     replied_by_day = defaultdict(lambda: [0,0])  # [replied, not replied]
     for e in emails:
@@ -100,6 +104,7 @@ def dashboard():
             replied_by_day[d][0] += 1
         else:
             replied_by_day[d][1] += 1
+    replied_by_day = {str(k): v for k, v in replied_by_day.items()}
     # Drafts saved (simulate: odd IDs are drafts for demo)
     drafts = [e for e in emails if int(e["id"]) % 2 == 1]
     num_drafts = len(drafts)
@@ -111,15 +116,15 @@ def dashboard():
     return render_template(
         "dashboard.html",
         unaddressed=unaddressed,
-        category_counts=category_counts,
+        category_counts=category_counts_dict,
         by_day=by_day,
         by_week=by_week,
         by_month=by_month,
-        replied_by_day=dict(replied_by_day),
+        replied_by_day=replied_by_day,
         emails=emails,
         num_drafts=num_drafts,
         top_issues=top_issues,
-        top_categories=top_categories
+        top_categories=category_counts.most_common(5)
     )
 
 if __name__ == "__main__":
