@@ -1,0 +1,72 @@
+[
+  {
+    "id": "1",
+    "from": "miki@example.com",
+    "subject": "Leaking faucet in kitchen",
+    "body": "Hello, my kitchen faucet has started leaking and is dripping constantly. Can someone come fix it soon?",
+    "timestamp": "2025-02-08T09:00:00"
+  },
+  {
+    "id": "2",
+    "from": "wilkin@example.com",
+    "subject": "Question about rent payment",
+    "body": "Hi, I wanted to check if my rent payment for this month has been received and what my current balance is.",
+    "timestamp": "2025-02-08T10:00:00"
+  },
+  {
+    "id": "3",
+    "from": "john@example.com",
+    "subject": "Locked out of my apartment",
+    "body": "I am locked out of unit 3B at Greenwich Ave. Please help!",
+    "timestamp": "2025-02-08T11:00:00"
+  },
+  {
+    "id": "4",
+    "from": "miki@example.com",
+    "subject": "Lease renewal inquiry",
+    "body": "Can you tell me about the lease renewal process and if there will be any rent changes?",
+    "timestamp": "2025-02-08T12:00:00"
+  },
+  {
+    "id": "5",
+    "from": "wilkin@example.com",
+    "subject": "Question about parking",
+    "body": "Is there additional guest parking at 2000 Holland Av?",
+    "timestamp": "2025-02-08T13:00:00"
+  },
+  {
+    "id": "6",
+    "from": "unknown@spamdomain.com",
+    "subject": "Congratulations! You've won a free cruise!",
+    "body": "Click here for your prize: http://spam.example.com",
+    "timestamp": "2025-02-08T14:00:00"
+  },
+  {
+    "id": "7",
+    "from": "longbody@example.com",
+    "subject": "Annual Maintenance Notice",
+    "body": "This is a very long email body. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Please confirm receipt.",
+    "timestamp": "2025-02-08T15:00:00"
+  },
+  {
+    "id": "8",
+    "from": "specialchar@example.com",
+    "subject": "Urgent: 🚨 Water leak @ 123 Main St!",
+    "body": "Hi! There's a major leak in unit #4B. Water everywhere!!! Please send help ASAP!!! 😱🚰",
+    "timestamp": "2025-02-08T16:00:00"
+  },
+  {
+    "id": "9",
+    "from": "duplicate1@example.com",
+    "subject": "Duplicate Subject",
+    "body": "This is the first email with a duplicate subject.",
+    "timestamp": "2025-02-08T17:00:00"
+  },
+  {
+    "id": "10",
+    "from": "duplicate2@example.com",
+    "subject": "Duplicate Subject",
+    "body": "This is the second email with a duplicate subject.",
+    "timestamp": "2025-02-08T18:00:00"
+  }
+]

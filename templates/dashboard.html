@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-100 to-blue-200 min-h-screen">
+    <div class="container mx-auto py-8">
+        <h1 class="text-4xl font-bold text-center text-blue-800 mb-8">📊 Property Management Dashboard</h1>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                <div class="text-2xl font-bold text-blue-700">{{ emails|length }}</div>
+                <div class="text-gray-600">Total Emails</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                <div class="text-2xl font-bold text-purple-700">{{ category_counts|sum }}</div>
+                <div class="text-gray-600">Total Issues</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                <div class="text-2xl font-bold text-green-700">{{ emails|selectattr('replied')|select|list|length }}</div>
+                <div class="text-gray-600">Total Replied</div>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6 text-center">
+                <div class="text-2xl font-bold text-yellow-600">{{ num_drafts }}</div>
+                <div class="text-gray-600">Drafts Saved</div>
+            </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-blue-700">Email & Issue Overview</h2>
+            <canvas id="summaryChart"></canvas>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Unaddressed Messages</h2>
+                <ul>
+                    {% for e in unaddressed %}
+                    <li class="mb-2 border-b pb-2">
+                        <span class="font-bold text-gray-800">{{ e.subject }}</span> <span class="text-gray-500">from {{ e.from }}</span><br>
+                        <span class="text-sm text-gray-600">{{ e.dt.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <span class="ml-2 px-2 py-1 rounded bg-blue-100 text-blue-700 text-xs">{{ e.category }}</span>
+                    </li>
+                    {% else %}
+                    <li class="text-gray-500">All messages addressed!</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Issue Counts</h2>
+                <ul>
+                    {% for cat, count in category_counts.items() %}
+                    <li class="mb-1 flex justify-between">
+                        <span class="capitalize">{{ cat.replace('_', ' ') }}</span>
+                        <span class="font-bold">{{ count }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-4 text-blue-700">Issues by Day</h2>
+                <canvas id="issuesByDay"></canvas>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-4 text-blue-700">Replied vs Not Replied by Day</h2>
+                <canvas id="repliedByDay"></canvas>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-4 text-blue-700">Issues by Week</h2>
+                <canvas id="issuesByWeek"></canvas>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-semibold mb-4 text-blue-700">Issues by Month</h2>
+                <canvas id="issuesByMonth"></canvas>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Top Issues</h2>
+                <ul>
+                    {% for issue, count in top_issues %}
+                    <li class="mb-1 flex justify-between">
+                        <span class="truncate max-w-xs">{{ issue }}</span>
+                        <span class="font-bold">{{ count }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <canvas id="topIssuesChart" class="mt-4"></canvas>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Top Categories</h2>
+                <ul>
+                    {% for cat, count in top_categories %}
+                    <li class="mb-1 flex justify-between">
+                        <span class="capitalize">{{ cat.replace('_', ' ') }}</span>
+                        <span class="font-bold">{{ count }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Data for charts (injected by Jinja)
+        const byDay = {{ by_day|tojson }};
+        const byWeek = {{ by_week|tojson }};
+        const byMonth = {{ by_month|tojson }};
+        const repliedByDay = {{ replied_by_day|tojson }};
+        // Summary chart
+        new Chart(document.getElementById('summaryChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Total Emails', 'Total Issues', 'Total Drafted/Replies'],
+                datasets: [{
+                    data: [
+                        {{ emails|length }},
+                        {{ category_counts|sum }},
+                        {{ emails|selectattr('replied')|select|list|length }}
+                    ],
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.7)',
+                        'rgba(168, 85, 247, 0.7)',
+                        'rgba(34,197,94,0.7)'
+                    ]
+                }]
+            },
+            options: {responsive: true, plugins: {legend: {position: 'bottom'}}}
+        });
+        // Issues by Day
+        new Chart(document.getElementById('issuesByDay'), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(byDay),
+                datasets: [{
+                    label: 'Issues',
+                    data: Object.values(byDay),
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)'
+                }]
+            },
+            options: {responsive: true, plugins: {legend: {display: false}}}
+        });
+        // Issues by Week
+        new Chart(document.getElementById('issuesByWeek'), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(byWeek),
+                datasets: [{
+                    label: 'Issues',
+                    data: Object.values(byWeek),
+                    backgroundColor: 'rgba(16, 185, 129, 0.6)'
+                }]
+            },
+            options: {responsive: true, plugins: {legend: {display: false}}}
+        });
+        // Issues by Month
+        new Chart(document.getElementById('issuesByMonth'), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(byMonth),
+                datasets: [{
+                    label: 'Issues',
+                    data: Object.values(byMonth),
+                    backgroundColor: 'rgba(168, 85, 247, 0.6)'
+                }]
+            },
+            options: {responsive: true, plugins: {legend: {display: false}}}
+        });
+        // Replied vs Not Replied by Day
+        const repliedLabels = Object.keys(repliedByDay);
+        const replied = repliedLabels.map(d => repliedByDay[d][0]);
+        const notReplied = repliedLabels.map(d => repliedByDay[d][1]);
+        new Chart(document.getElementById('repliedByDay'), {
+            type: 'bar',
+            data: {
+                labels: repliedLabels,
+                datasets: [
+                    {
+                        label: 'Replied',
+                        data: replied,
+                        backgroundColor: 'rgba(34,197,94,0.7)'
+                    },
+                    {
+                        label: 'Not Replied',
+                        data: notReplied,
+                        backgroundColor: 'rgba(239,68,68,0.7)'
+                    }
+                ]
+            },
+            options: {responsive: true, plugins: {legend: {position: 'top'}}}
+        });
+        // Top Issues chart
+        new Chart(document.getElementById('topIssuesChart'), {
+            type: 'bar',
+            data: {
+                labels: {{ top_issues|map(attribute=0)|list|tojson }},
+                datasets: [{
+                    label: 'Count',
+                    data: {{ top_issues|map(attribute=1)|list|tojson }},
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)'
+                }]
+            },
+            options: {responsive: true, plugins: {legend: {display: false}}}
+        });
+    </script>
+</body>
+</html> 

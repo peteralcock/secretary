@@ -1,0 +1,14 @@
+langchain
+langgraph
+langsmith
+python_dotenv
+openai
+jinja2
+Flask
+gunicorn
+langchain_openai
+langchain-google-genai
+google-generativeai
+pytest
+psycopg2-binary
+selenium

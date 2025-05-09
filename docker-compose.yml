@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_DB: secretary_pm
+      POSTGRES_USER: secretary
+      POSTGRES_PASSWORD: secretarypass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  secretary:
+    build: .
+    depends_on:
+      - db
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: secretary_pm
+      POSTGRES_USER: secretary
+      POSTGRES_PASSWORD: secretarypass
+      FLASK_SECRET_KEY: devsecret
+      EMAILS_PATH: /app/sample_emails.json
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+    command: gunicorn app:app --bind 0.0.0.0:5000 --timeout 120
+
+volumes:
+  pgdata: 
