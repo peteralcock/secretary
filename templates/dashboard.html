@@ -6,6 +6,19 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gradient-to-br from-gray-100 to-blue-200 min-h-screen">
+    <!-- Navigation Menu -->
+    <nav class="bg-white shadow-md fixed w-full z-10 top-0 left-0">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="text-2xl font-bold text-blue-800">Secretary</div>
+            <div class="space-x-6">
+                <a href="/" class="text-blue-700 hover:text-blue-900 font-semibold">Inbox</a>
+                <a href="/dashboard" class="text-blue-700 hover:text-blue-900 font-semibold">Dashboard</a>
+                <a href="/scoreboard" class="text-blue-700 hover:text-blue-900 font-semibold">Scoreboard</a>
+                <a href="/logout" class="text-blue-700 hover:text-blue-900 font-semibold">Logout</a>
+            </div>
+        </div>
+    </nav>
+    <div class="pt-20"> <!-- Add padding to push content below nav -->
     <div class="container mx-auto py-8">
         <h1 class="text-4xl font-bold text-center text-blue-800 mb-8">📊 Property Management Dashboard</h1>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
@@ -105,6 +118,7 @@
             </div>
         </div>
     </div>
+    </div> <!-- End main content wrapper -->
     <script>
         // Data for charts (injected by Jinja)
         const byDay = {{ by_day|tojson }};

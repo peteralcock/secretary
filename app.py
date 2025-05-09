@@ -20,8 +20,7 @@ def load_emails():
 
 @app.route("/")
 def home():
-    emails = load_emails()
-    return render_template("home.html", emails=emails)
+    return redirect(url_for("dashboard"))
 
 @app.route("/email/<email_id>", methods=["GET", "POST"])
 def process_email(email_id):
