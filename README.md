@@ -73,7 +73,7 @@ Secretary leverages advanced AI (Langchain & Large Language Models) to read, und
 ## Technical Stack
 
 * **Backend:** Python, Flask, Langchain, LangGraph
-* **AI Models:** Configured for Deepseek API (easily adaptable to other LLMs like OpenAI, Anthropic)
+* **AI Models:** Configured for Gemini API (easily adaptable to other LLMs like OpenAI, Anthropic)
 * **Database:** SQLite (for easy setup; can be replaced with other SQL databases)
 * **Email Protocols:** IMAP for fetching, SMTP for sending.
 
@@ -100,8 +100,8 @@ Secretary leverages advanced AI (Langchain & Large Language Models) to read, und
     ```
 4.  **Configure Environment Variables:** Create a `.env` file in the project root (see `config.py` for variables to set):
     ```dotenv
-    DEEPSEEK_API_KEY=your_deepseek_api_key # Or your chosen LLM API key
-    
+    GEMINI_API_KEY=your_gemini_api_key # Or your chosen LLM API key
+    # OPENAI_API_KEY=
     EMAIL_SERVER=smtp.yourserver.com
     EMAIL_USERNAME=your_property_management_email@example.com
     EMAIL_PASSWORD=your_email_password
