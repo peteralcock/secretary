@@ -126,5 +126,20 @@ def dashboard():
         top_categories=category_counts.most_common(5)
     )
 
+@app.route("/inbox")
+def inbox():
+    emails = load_emails()
+    return render_template("home.html", emails=emails)
+
+@app.route("/scoreboard")
+def scoreboard():
+    # Placeholder scoreboard data
+    users = [
+        {"username": "alice", "replies": 12},
+        {"username": "bob", "replies": 8},
+        {"username": "carol", "replies": 5},
+    ]
+    return render_template("scoreboard.html", users=users)
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True) 
