@@ -1,5 +1,5 @@
 
-![Secretary](splash-1.jpg?raw=true "Secretary")
+![Secretary](splash.jpg?raw=true "Secretary")
 Your Ai-Powered Property Management Inbox Assistant
 
 **Transform your property management workflows with Secretary, an intelligent system designed to automate email handling, streamline tenant communication, and integrate seamlessly with your operations.**
