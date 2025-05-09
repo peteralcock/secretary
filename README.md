@@ -64,9 +64,9 @@ Secretary leverages advanced AI (Langchain & Large Language Models) to read, und
 7.  **Edit & Dispatch:** The manager can approve, edit, or discard the AI response, then send it or save it as a draft.
 8.  **Logging & Data Update:** All interactions and generated data (tickets, responses) are logged and stored.
 
-![Secretary](step-1.jpg?raw=true "Step 1")
-![Secretary](step-2.jpg?raw=true "Step 2")
-![Secretary](step-3.jpg?raw=true "Step 3")
+![Secretary](step1.png?raw=true "Step 1")
+![Secretary](step2.png?raw=true "Step 2")
+![Secretary](step3.png?raw=true "Step 3")
 
 
 
