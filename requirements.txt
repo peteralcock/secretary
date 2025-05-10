@@ -17,3 +17,5 @@ ocrmypdf
 ics
 flask-login
 flask-sqlalchemy
+redis>=4.0.0
+cryptography>=41.0.0

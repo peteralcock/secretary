@@ -1,7 +1,7 @@
 import os
 import tempfile
 import pytest
-from app import app, db, User
+from app import app, db, User, Notification, AIUser
 from flask import url_for
 from unittest.mock import patch
 
@@ -108,4 +108,32 @@ def test_ics_download(client):
         f.write('BEGIN:VCALENDAR\nEND:VCALENDAR')
     rv = client.get('/ics/test_event.ics')
     assert rv.status_code == 200
-    assert b'VCALENDAR' in rv.data 
+    assert b'VCALENDAR' in rv.data
+
+def test_notifications_flow(client):
+    signup(client, 'notifier', 'notify@example.com', 'pw')
+    login(client, 'notifier', 'pw')
+    user = User.query.filter_by(username='notifier').first()
+    # Add a notification
+    notif = Notification(user_id=user.id, type='test', message='Test notification')
+    db.session.add(notif)
+    db.session.commit()
+    rv = client.get('/dashboard')
+    assert b'Test notification' in rv.data
+    # Mark all as read
+    rv = client.post('/notifications/mark_all_read', follow_redirects=True)
+    assert b'All notifications marked as read' in rv.data
+    rv = client.get('/dashboard')
+    assert b'Test notification' not in rv.data
+
+def test_monitor_inbox_endpoint(client):
+    signup(client, 'aiuser', 'aiuser@example.com', 'pw')
+    login(client, 'aiuser', 'pw')
+    user = User.query.filter_by(username='aiuser').first()
+    ai = AIUser(user_id=user.id, name='AI', mode='full-auto')
+    db.session.add(ai)
+    db.session.commit()
+    with patch('app.monitor_inbox_for_ai_user') as mock_task:
+        rv = client.post(f'/ai_users/{ai.id}/monitor_inbox', follow_redirects=True)
+        assert b'Inbox monitoring task started' in rv.data
+        mock_task.delay.assert_called_once_with(ai.id, user_id=user.id) 

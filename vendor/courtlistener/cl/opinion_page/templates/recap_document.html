@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% load text_filters %}
+{% load extras %}
+{% load admin_urls %}
+{% load static %}
+{% load waffle_tags %}
+
+
+{% block title %}{{ title|safe|striptags }} – CourtListener.com{% endblock %}
+{% block og_title %}{{ title|safe|striptags }} – CourtListener.com{% endblock %}
+{% block description %}{% if rd.docket_entry.description %}{{ rd.docket_entry.description }}{% else %}{{ rd.description }}{% endif %}
+{% endblock %}
+{% block og_description %}{% if rd.docket_entry.description %}{{ rd.docket_entry.description }}{% else %}{{ rd.description }}{% endif %}
+{% endblock %}
+{% block og_url %}{% if og_file_path %}{% get_full_host %}{{ og_file_path }}{% else %}{{ block.super }}{% endif %}{% endblock %}
+{% block twitter_card_type %}{% if rd.thumbnail %}summary_large_image{% else %}{{ block.super }}{% endif %}{% endblock %}
+{% block og_image %}{% if rd.thumbnail %}{{ rd.thumbnail.url }}{% else %}{{ block.super }}{% endif %}{% endblock %}
+{% block og_image_alt %}{% if rd.thumbnail %}The first page of the document in the linked PDF{% else %}{{ block.super }}{% endif %}{% endblock %}
+{% block og_image_width %}{% if rd.thumbnail %}826{% else %}{{ block.super }}{% endif %}{% endblock %}
+{% block og_image_height %}{% if rd.thumbnail %}1068{% else %}{{ block.super }}{% endif %}{% endblock %}
+{% block og_image_type %}{% if rd.thumbnail %}image/jpeg{% else %}{{ block.super }}{% endif %}{% endblock %}
+
+
+{% block navbar-r %}active{% endblock %}
+
+{% block footer-scripts %}
+    <script defer type="text/javascript"
+            src="{% static "js/jquery.NobleCount.min.js" %}"></script>
+    <script defer type="text/javascript"
+            src="{% static "js/save-notes.js" %}"></script>
+    <script defer type="text/javascript"
+            src="{% static "js/buy_pacer_modal.js" %}"></script>
+      {% if DEBUG %}
+    <script src="{% static "js/htmx.js" %}"></script>
+    <script src="{% static "js/fix-toolbar-for-htmx.js" %}"></script>
+  {% else %}
+    <script src="{% static "js/htmx.min.js" %}"></script>
+  {% endif %}
+    <script src="{% static "js/pray_and_pay.js" %}"></script>
+{% endblock %}
+
+{% block sidebar %}
+    <div class="col-sm-3" id="sidebar">
+        <div class="sidebar-section">
+            <h4>
+                <i class="fa fa-arrow-circle-o-left gray"></i>
+                <a href="{{ rd.docket_entry.docket.get_absolute_url }}">Back to Docket</a>
+            </h4>
+        </div>
+
+        {% include "includes/rd_admin_tools.html" with d=rd.docket_entry.docket de=rd.docket_entry %}
+
+        {# show this div if there is a note, otherwise, put it in place, in anticipation of it becoming one. #}
+        <div class="{% if not note_form.instance.recap_doc_id %}hidden{% endif %} sidebar-section"
+             id="sidebar-notes">
+            <div>
+                <h3 class="inline"><span>Your Notes</span></h3>
+
+                <p class="inline" data-toggle="modal"
+                   data-target="#modal-save-note">
+                    (<a href="#note-editor">edit</a>)
+                    <i class="fa fa-pencil gray pointer"></i>
+                </p>
+
+                <p id="sidebar-notes-text">
+                    {{ note_form.instance.notes|default:"(none)" }}
+                </p>
+            </div>
+        </div>
+
+        {% include "includes/social_links.html" %}
+        {% include "includes/donate_sidebar.html" with referrer="recap-doc-donate-now" %}
+    </div>
+{% endblock %}
+
+
+{% block content %}
+    <article class="col-sm-9">
+      <h2 class="inline"><a
+              href="{{ rd.docket_entry.docket.get_absolute_url }}"
+              class="no-underline black-link">{{ rd.docket_entry.docket|best_case_name|safe|v_wrapper }}</a></h2>
+      {% include "includes/notes_modal.html" %}
+      {% include "includes/buy_pacer_modal.html" %}
+      {% if redirect_to_pacer_modal %}
+        {% include "includes/redirect_to_pacer_modal.html" %}
+      {% endif %}
+      {% include "includes/first_prayer_modal.html" %}
+      {% include "includes/rd_metadata_headers.html" %}
+      <br>
+
+      <div>
+        {% if rd.docket_entry.description %}
+        <div class="well well-sm">
+            <h4>Description</h4>
+            <p>{{ rd.docket_entry.description }}</p>
+        </div>
+        {% endif %}
+
+        {% if rd.is_available %}
+          <ul class="nav nav-tabs v-offset-below-1" role="tablist">
+            <li role="presentation" class="{% block nav-pdf %}active{% endblock %}">
+              <a href="#pdf"
+                 aria-controls="home"
+                 role="tab"
+                 data-toggle="tab">PDF</a>
+            </li>
+            <li role="presentation">
+              <a href="#text"
+                 aria-controls="profile"
+                 role="tab"
+                 data-toggle="tab">Text</a></li>
+          {% if authorities %}
+            <li class="{% block nav-authorities %}inactive{% endblock %}" role="presentation">
+              <a href="{{ rd.get_authorities_url }}">
+                Authorities
+              </a>
+            </li>
+          {% endif %}
+          </ul>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane {% block content-pdf %}active{% endblock %}" id="pdf">
+              <div class="embed-responsive embed-responsive-8by11">
+                <object data="{{ rd.filepath_local.url }}?no-og=true"
+                        type="application/pdf"
+                        width="100%"
+                        height="100%">
+                  <div class="row">
+                    <div class="col-sm-1 col-md-2 col-lg-3"></div>
+                    <div class="col-xs-12 col-sm-10 col-md-8 col-lg-6 text-center">
+                      <p>Oops! Your browser does not support embedded PDF viewing.
+                      </p>
+                      <p>
+                        <div class="v-offset-below-1 v-offset-above-1">
+                          {% include "includes/rd_download_button.html" %}
+                        </div>
+                      </p>
+                    </div>
+                  </div>
+                </object>
+              </div>
+            </div>
+
+            <div role="tabpanel" class="tab-pane" id="text">
+              {% if rd.ocr_status and rd.ocr_status != rd.OCR_UNNECESSARY %}
+                <div class="col-sm-12 alert-warning alert">
+                  {% if rd.ocr_status == rd.OCR_COMPLETE %}
+                    <p class="bottom">The text of this document was obtained by analyzing a scanned document provided by the court. As a result it may have typos, and you may prefer <a href="{{ rd.filepath_local.url }}" class="visitable">reading the original PDF</a>.
+                    </p>
+                  {% elif rd.ocr_status == rd.OCR_FAILED %}
+                    <p class="bottom">We were unable to extract text from this document. Please <a href="{{ rd.filepath_local.url }}" class="visitable">download and read the original PDF</a>.
+                    </p>
+                  {% elif rd.ocr_status == rd.OCR_NEEDED %}
+                    <p class="bottom">We have not yet extracted text from this document. Please <a href="{{ rd.filepath_local.url }}" class="visitable">download and read the original PDF</a>.
+                    </p>
+                  {% endif %}
+                </div>
+                <div class="clearfix"></div>
+              {% endif %}
+
+              <div id='default-text'>
+                <div id="opinion-content"> {# used by Zotero, Juris-M #}
+                  {% if rd.plain_text %}
+                    <pre>{{ rd.plain_text }}</pre>
+                  {% else %}
+                    <div class="col-sm-12 alert-warning alert">
+                      <p>Text not yet extracted from this document. Please <a href="{{ rd.filepath_local.url }}" class="visitable">download and read the original PDF</a>.
+                      </p>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            {% block tab-content %}{% endblock %}
+        </li>
+
+          </div>
+        {% else %}
+
+          {% if rd.is_sealed %}
+            <div class="col-sm-12 alert-danger alert">
+              <p class="bottom">
+                <i class="fa fa-ban"></i> This item is unavailable in PACER. This is usually caused by the court sealing the document.
+              </p>
+            </div>
+          {% else %}
+            <div id="doc-no-available-warning" class="flex flex-column flex-sm-row row-gap-3 alert-warning alert justify-content-between">
+              <div class="col-sm-12">
+                <p class="bottom">This item is not yet in the RECAP collection.
+                </p>
+              </div>
+              <div class="col-sm-12 flex flex-row gap-2 justify-content-end">
+                {% if rd.pacer_url %}
+                  <a class="btn btn-primary btn-sm"
+                     href="{{ rd.pacer_url }}"
+                     rel="nofollow"
+                     target="_blank"><i class="fa fa-dollar"></i>&nbsp;Buy on PACER</a>
+                {% endif %}
+                {% if not request.COOKIES.recap_install_plea %}
+                  <a href="https://free.law/recap/"
+                     class="btn btn-success btn-sm recap_install_plea">Install RECAP</a>
+                {% endif %}
+                <div class="prayer-button">
+                  {% include "includes/pray_and_pay_htmx/pray_button.html" with prayer_exists=rd.prayer_exists document_id=rd.id count=rd.prayer_count regular_size=True%}
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        {% endif %}
+      </div>
+    </article>
+{% endblock %}

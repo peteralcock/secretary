@@ -1,0 +1,511 @@
+{% load static %}{% load humanize %}{% load widget_tweaks %}{% load extras %}{% load waffle_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta http-equiv="Content-Language" content="en"/>
+  <meta name="language" content="en_us"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+
+  {% block meta %}
+  <meta name="description" content="{% block description %}Create alerts, search for and browse the latest case law, PACER documents, judges, and oral arguments. Updated automatically with the latest court documents. An initiative of Free Law Project.{% endblock %}"/>
+
+  {# Open Search Plugin #}
+  <link rel="search"
+        type="application/opensearchdescription+xml"
+        title="CourtListener"
+        href="{% static "xml/opensearch.xml" %}" />
+
+  {# MS Application Icons #}
+  <meta name="application-name" content="CourtListener"/>
+  <meta name="msapplication-tooltip" content="Create alerts, search for and browse the latest case law."/>
+  <meta name="msapplication-starturl" content="https://www.courtlistener.com"/>
+  <meta name="msapplication-navbutton-color" content="#6683B7"/>
+
+  {# Twitter #}
+  <meta name="twitter:card" content="{% block twitter_card_type %}summary{% endblock %}">
+  <meta name="twitter:creator" content="@freelawproject">
+  <meta name="twitter:site" content="@courtlistener">
+
+  {# Facebook #}
+  <meta property="og:type" content="website"/>
+  <meta property="og:title" content="{% block og_title %}CourtListener{% endblock %}"/>
+  <meta property="og:description"
+        content="{% block og_description %}Create alerts, search for and browse the latest case law, PACER documents, judges, and oral arguments. Updated automatically with the latest court documents. An initiative of Free Law Project.{% endblock %}">
+  <meta property="og:url" content="{% block og_url %}{% get_full_host %}{{ request.path }}{% endblock %}"/>
+  <meta property="og:site_name" content="CourtListener"/>
+  <meta property="og:image"
+        content="{% block og_image %}{% static "png/og-image-1200x630.png" %}{% endblock %}"/>
+  <meta property="og:image:type" content="{% block og_image_type %}image/png{% endblock %}"/>
+  <meta property="twitter:image:alt"
+        content="{% block og_image_alt %}The CourtListener logo{% endblock %}"/>
+  <meta property="og:image:width" content="{% block og_image_width %}1200{% endblock %}"/>
+  <meta property="og:image:height" content="{% block og_image_height %}630{% endblock %}"/>
+  {% endblock %}
+
+  {% block icons %}
+  {# Touch icons, etc from: https://evilmartians.com/chronicles/how-to-favicon-in-2021-six-files-that-fit-most-needs #}
+  <link rel="icon" href="{% static "ico/favicon.ico" %}" sizes="32x32">
+  <link rel="icon" href="{% static "svg/favicon.svg" %}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="{% static "png/apple-touch-icon.png" %}">
+  {# Add hashes to manifest by hand. They're the first 12 chars of the MD5 of the file. #}
+  <link rel="manifest" href="{% static "json/manifest.json" %}">
+  {% endblock %}
+
+  <link href="{% static "css/font-awesome.css" %}" rel="stylesheet">
+
+  {% block privacy %}
+    {% if private %}
+      <meta name="robots" content="noindex, noodp, noarchive, noimageindex" />
+    {% elif private == None %}
+      <!-- This bit of invalid HTML is to give developers a loud warning. -->
+      <h1>You did not supply the "private" variable to your template.
+          Please indicate if it is True or False to remove this
+          awful message.</h1>
+    {% endif %}
+  {% endblock %}
+  <title>{% block title %}CourtListener.com{% endblock %}</title>
+  {% block head %}{% endblock %}
+  {% block canonical %}{% endblock %}
+  {% if DEBUG %}
+    <link rel="stylesheet" href="{% static "css/bootstrap/3.3.0/bootstrap.css" %} "
+          type="text/css">
+  {% else %}
+    <link rel="stylesheet" href="{% static "css/bootstrap/3.3.0/bootstrap.min.css" %}"
+          type="text/css">
+  {% endif %}
+  <link rel="stylesheet" href="{% static "css/override.css" %}" type="text/css"
+        media="screen, projection">
+</head>
+
+<body class="{% block body-classes %}{% endblock %}">
+<div class="container round-bottom">
+  {% block header %}
+  <header class="row">
+    <!-- Donate Banner -->
+    {% if FUNDRAISING_MODE %}
+      {% include 'includes/dismissible_nav_banner.html' with link="https://donate.free.law/forms/supportflp" cookie_name="eoy_banner" button_text="Make your DONATION TODAY" button_emoji='<i class="fa fa-heart-o"></i>' text="Your support has grown CourtListener to over 10 million opinions, with improved search and API functionality. Help us continue expanding and enhancing access to the law. Donate before the end of 2024 to power free and open legal information for everyone" %}
+    {% endif %}
+
+    <!-- Broken Email Banner -->
+    {% if EMAIL_BAN_REASON %}
+      <div class="navbar navbar-default subnav  alert-danger alert-dismissible broken-email-banner" role="navigation">
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-lg-12">
+              <p class="navbar-text lead">
+                <i class="fa fa-warning"></i>
+                {% if EMAIL_BAN_PERMANENT %}
+                  We are currently unable to send emails to you. Please update your email address to continue receiving emails.
+                {% else %}
+                  We are having difficulty sending emails to you, but we're continuing to try. If this problem persists, our servers will automatically stop sending you messages.
+                {% endif %}
+                </br>
+                <a href="{% url 'broken_email_help' %}"
+                  class="btn btn-default v-offset-above-1 pull-right">Learn More</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Static navbar -->
+    <div class="navbar navbar-default" role="navigation">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="/" tabindex="1">
+            {% include "includes/cl_logo.svg" %}
+          </a>
+        </div>
+        <div class="navbar-collapse collapse">
+          {% block main-nav %}
+            {% if user.is_authenticated %}
+              <ul class="nav navbar-nav navbar-right">
+                <li><a href="https://free.law/about/" tabindex="200">About</a></li>
+                <li><a href="{% url "faq" %}" tabindex="201">FAQ</a></li>
+                <li class="dropdown">
+                  <a href="#"
+                     class="dropdown-toggle"
+                     tabindex="202"
+                     data-toggle="dropdown">Profile&nbsp;<i class="gray fa fa-user"></i> <span class="caret"></span></a>
+                  <ul class="dropdown-menu" role="menu">
+                    <li><a href="{% url "profile_alerts" %}"
+                           tabindex="203"><i class="fa fa-bell-o gray fa-fw"></i>&nbsp;Alerts</a></li>
+                    <li><a href="{% url "profile_notes" %}"
+                           tabindex="204"><i class="fa fa-bookmark-o gray fa-fw"></i>&nbsp;Notes</a></li>
+                    <li><a href="{% url "tag_list" username=user.username %}"
+                           tabindex="205"><i class="fa fa-tags gray fa-fw"></i>&nbsp;Tags</a></li>
+                    <li><a href="{% url 'user_prayers' user.username %}" tabindex="206">
+                        <div class="fa gray fa-fw">
+                          {% include "includes/hand-holding-heart.svg" %}
+                        </div>
+                        &nbsp;Prayers
+                      </a>
+                    </li><!--need to fix class-->
+                    <li class="divider"></li>
+                    <li><a href="{% url "profile_your_support" %}"
+                           tabindex="207"><i class="fa fa-money gray fa-fw"></i>&nbsp;Your Support</a></li>
+                    <li><a href="{% url "view_settings" %}"
+                           tabindex="208"><i class="fa fa-user gray fa-fw"></i>&nbsp;Account</a></li>
+                    <li>
+                      <form id="logout-form" method="post" action="/sign-out/">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-link" tabindex="208">
+                          <i class="fa fa-sign-out gray fa-fw"></i>&nbsp;Sign out
+                        </button>
+                      </form>
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+            {% else %}
+              <ul class="nav navbar-nav navbar-right">
+                <li><a href="https://free.law/about/" tabindex="200">About</a></li>
+                <li><a href="{% url "faq" %}" tabindex="201">FAQ</a></li>
+                <li class="visible-xs">
+                  <a href="https://donate.free.law/forms/membership"
+                     tabindex="203">Become a Member</a>
+                </li>
+                <li>
+                  {% if request.path != "/sign-out/" %}
+                    <a href="{% url "sign-in" %}?next={{request.path}}?{{get_string|urlencode}}{% if results %}page={{results.number}}{% endif %}"
+                       tabindex="204">Sign in / Register</a>
+                  {% else %}
+                      <a href="{% url "sign-in" %}" tabindex="204">Sign in / Register</a>
+                  {% endif %}
+                </li>
+              </ul>
+            {% endif %}
+          {% endblock %}
+        </div><!--/.nav-collapse -->
+      </div><!--/.container-fluid -->
+    </div><!-- navbar -->
+
+    <!--Secondary navbar -->
+    <div class="navbar navbar-default subnav white-background" role="navigation">
+      <div class="container-fluid">
+        <div>
+          <ul class="nav navbar-nav">
+            <li class="dropdown {% block navbar-o %}inactive{% endblock %}"
+                id="navbar-o">
+              <a href="#"
+                 class="dropdown-toggle"
+                 tabindex="100"
+                 data-toggle="dropdown">Case Law&nbsp;<span
+                class="caret"></span>
+              </a>
+              <ul class="dropdown-menu" role="menu">
+                <li>
+                  <a href="{% url "advanced_o" %}" tabindex="101">Search Case Law</a>
+                </li>
+                {% flag "parenthetical-search" %}
+                  <li>
+                    <a href="{% url "advanced_pa" %}" tabindex="101">Search Parentheticals</a>
+                  </li>
+                {% endflag %}
+                <li>
+                  <a href="{% url "citation_homepage" %}"
+                     tabindex="102">Look Up Citations</a>
+                </li>
+                <li>
+                  <a href="{% url "mapper_homepage" %}" tabindex="102">Citation Visualizations</a>
+                </li>
+                <li>
+                  <a href="{% url "coverage_opinions" %}" tabindex="103">About this Collection</a>
+                </li>
+                <li>
+                  <a href="{% url "case_law_api_help" %}" tabindex="104">API</a>
+                </li>
+              </ul>
+            </li>
+            <li class="dropdown {% block navbar-r %}inactive{% endblock %}" id="navbar-r">
+              <a href="#"
+                 class="dropdown-toggle"
+                 tabindex="200"
+                 data-toggle="dropdown">RECAP Archive&nbsp;<span class="caret"></span>
+              </a>
+              <ul class="dropdown-menu" role="menu">
+                <li>
+                  <a href="{% url "advanced_r" %}" tabindex="201">Search PACER Data</a>
+                </li>
+                <li>
+                  <a href="https://free.law/recap/" tabindex="202">Install RECAP</a>
+                </li>
+                  <li>
+                    <a href="{% url "top_prayers" %}" tabindex="203">Pray and Pay Project</a>
+                  </li>
+                <li>
+                  <a href="{% url "alert_help" %}#recap-alerts" tabindex="204">Get Case Alerts</a>
+                </li>
+                <li>
+                  <a href="{% url "coverage_recap" %}" tabindex="205">About this Collection</a>
+                </li>
+                <li>
+                  <a href="https://free.law/data-consulting/" tabindex="206">Bulk Data Service</a>
+                </li>
+                <li>
+                  <a href="{% url "pacer_api_help" %}" tabindex="207">API</a>
+                </li>
+              </ul>
+            </li>
+            <li class="dropdown {% block navbar-oa %}inactive{% endblock %}" id="navbar-oa">
+              <a href="#"
+                 class="dropdown-toggle"
+                 tabindex="300"
+                 data-toggle="dropdown">Oral Arguments&nbsp;<span class="caret"></span></a>
+              <ul class="dropdown-menu" role="menu">
+                <li>
+                  <a href="{% url "advanced_oa" %}" tabindex="301">Search Oral Arguments</a>
+                </li>
+                <li>
+                  <a href="{% url "alert_help" %}#search-alerts" tabindex="302">Get Search Alerts</a>
+                </li>
+                <li>
+                  <a href="{% url "podcasts" %}" tabindex="303">Custom Podcasts</a>
+                </li>
+                <li>
+                  <a href="{% url "coverage_oa" %}" tabindex="304">About this Collection</a>
+                </li>
+                <li>
+                  <a href="{% url "oral_argument_api_help" %}" tabindex="305">API</a>
+                </li>
+              </ul>
+            </li>
+            <li class="dropdown {% block navbar-p %}inactive{% endblock %}" id="navbar-p">
+              <a href="#"
+                 class="dropdown-toggle"
+                 tabindex="400"
+                 data-toggle="dropdown">Judges&nbsp;<span class="caret"></span></a>
+              <ul class="dropdown-menu" role="menu">
+                <li>
+                  <a href="{% url "advanced_p" %}" tabindex="401">Search Judges</a>
+                </li>
+                <li>
+                  <a href="https://free.law/projects/judge-db" tabindex="404">About this Collection</a>
+                </li>
+                <li>
+                  <a href="{% url "judge_api_help" %}" tabindex="405">API</a>
+                </li>
+              </ul>
+            </li>
+            <li class="dropdown {% block navbar-fd %}inactive{% endblock %}" id="navbar-fd">
+              <a href="#"
+                 class="dropdown-toggle"
+                 tabindex="500"
+                 data-toggle="dropdown">Financial Disclosures&nbsp;<span class="caret"></span></a>
+              <ul class="dropdown-menu" role="menu">
+                <li>
+                  <a href="{% url "advanced_fd" %}" tabindex="501">Search Financial Disclosures</a>
+                </li>
+                <li>
+                  <a href="{% url "coverage_fds" %}" tabindex="502">About this Collection</a>
+                </li>
+                <li>
+                  <a href="{% url "financial_disclosures_api_help" %}" tabindex="503">API</a>
+                </li>
+              </ul>
+            </li>
+          </ul>
+          <ul class="nav navbar-nav navbar-right">
+            <li
+              class="{% block navbar-donate %}inactive{% endblock %} hidden-xs">
+              <a href="https://donate.free.law/forms/membership"
+                 tabindex="600"
+                 class="donate"><i class="fa fa-heart-o"></i>&nbsp;Donate</a>
+            </li>
+          </ul>
+        </div>
+      </div><!--/.container-fluid -->
+    </div>
+  </header>
+  {% endblock %}
+
+  {% block messages %}
+    {% include "includes/messages.html" %}
+  {% endblock %}
+
+  <div class="row content">
+    {% block sidebar %}
+      <div class="col-sm-3" id="sidebar"></div>
+    {% endblock %}
+
+    {# for the settings pages #}
+    {% block nav %}{% endblock %}
+
+    {% block content %}
+      <p>Your content seems to be missing! This is never good.</p>
+    {% endblock %}
+  </div>
+
+  {% block newsletter %}
+    <div class="row base-newsletter hidden-print">
+      <div class="col-sm-6">
+        <p class="bold bottom">Newsletter</p>
+        <p>Sign up to receive the Free Law Project newsletter with tips and announcements.</p>
+      </div>
+      <div class="col-sm-6 right">
+        <a href="https://donate.free.law/np/clients/freelawproject/subscribe.jsp?forwardedFromSecureDomain=1&subscription=9"
+          class="btn btn-default"
+          tabindex="10000">
+          <i class="fa fa-newspaper-o"></i>&nbsp;Subscribe
+        </a>
+      </div>
+    </div>
+  {% endblock %}
+
+  {% block footer %}
+  <footer class="row hidden-print">
+    <div class="col-sm-8">
+      <div class="row">
+        <div class="col-xs-6">
+          <div class="col-sm-6 no-gutter">
+            <div class="footer-item">
+              <a href="https://free.law/about/" tabindex="11000">About</a>
+            </div>
+            <div class="footer-item">
+              <a href="{% url "help_home" %}" tabindex="11001">Help</a> &amp; <a href="{% url "faq" %}">FAQ</a>
+            </div>
+            <div class="footer-item">
+              <a href="https://donate.free.law/forms/membership" tabindex="11002">Donate</a>
+            </div>
+          </div>
+
+          <div class="col-sm-6 no-gutter">
+            <div class="footer-item">
+              <a href="{% url "coverage" %}" tabindex="11003">About Our Data</a>
+            </div>
+            <div class="footer-item">
+              <a href="{% url "api_index" %}" tabindex="11004">APIs &amp; Bulk Data</a>
+            </div>
+            <div class="footer-item">
+              <a href="{% url "feeds_info" %}" tabindex="11005">Feeds</a> <span
+              class="alt">&amp;</span>
+              <a href="{% url "podcasts" %}" tabindex="11006">Podcasts</a>&nbsp;<i
+              class="gray fa fa-podcast inline"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xs-6">
+          <div class="col-sm-6 no-gutter">
+            <div class="footer-item">
+              <a href="https://free.law" tabindex="11007">Blog Posts</a>
+            </div>
+            <div class="footer-item">
+              <a href="{% url "contact" %}" tabindex="11008">Contact</a>
+            </div>
+            <div class="footer-item">
+              <a href="https://free.law/data-consulting/" tabindex="11009">Data Services</a>
+            </div>
+            <div class="footer-item">
+              <a href="{% url "contribute" %}" tabindex="11010">Contribute</a>
+            </div>
+          </div>
+
+          <div class="col-sm-6 no-gutter">
+            <div class="footer-item">
+              <a href="{% url "terms" %}" tabindex="11011">Terms &amp; Privacy</a>
+            </div>
+            <div class="footer-item">
+              <a href="{% url "terms" %}#removal" tabindex="11012">Removal</a>
+            </div>
+            <div class="footer-item">
+              <a href="https://free.law/vulnerability-disclosure-policy/" tabindex="11013">Vulnerability Policies</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-4 text-right" id="donate-image">
+      <a href="https://donate.free.law/forms/membership"  tabindex="11014">
+        <img src="{% static "png/donate-button.png" %}"
+             alt="Donate to support our work"
+             height="75"
+             width="227">
+      </a>
+    </div>
+    <div class="col-sm-12" id="by-line">
+      <p>CourtListener is sponsored by the non-profit <a
+        href="https://free.law" tabindex="11015">Free Law Project</a>.</p>
+    </div>
+  </footer>
+  {% endblock %}
+</div>
+
+{% block social %}
+<div class="text-center hidden-print" id="social-container">
+  <a href="https://free.law/"
+     class="fa-stack fa-lg"
+     tabindex="12000">
+    <i class="fa fa-circle fa-stack-2x gray"></i>
+    <i class="fa fa-link fa-stack-1x fa-inverse"></i>
+  </a>
+  <a href="https://x.com/freelawproject"
+     rel="noreferrer"
+     class="fa-stack fa-lg"
+     tabindex="12001">
+    <i class="fa fa-circle fa-stack-2x gray"></i>
+    <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+  </a>
+  <a href="https://donate.free.law/np/clients/freelawproject/subscribe.jsp?subscription=9"
+     class="fa-stack fa-lg"
+     tabindex="12002">
+    <i class="fa fa-circle fa-stack-2x gray"></i>
+    <i class="fa fa-newspaper-o fa-stack-1x fa-inverse"></i>
+  </a>
+  <a href="https://github.com/freelawproject/courtlistener"
+     rel="noreferrer"
+     class="fa-stack fa-lg"
+     tabindex="12003">
+    <i class="fa fa-circle fa-stack-2x gray"></i>
+    <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+  </a>
+</div>
+{% endblock %}
+
+{% if DEBUG %}
+<script type="text/javascript"
+        src="{% static "js/jquery/jquery-3.4.1.js" %}"></script>
+{% else %}
+<script type="text/javascript"
+        src="{% static "js/jquery/jquery-3.4.1.min.js" %}"></script>
+{% endif %}
+
+{% if DEBUG %}
+  <script type="text/javascript" src="{% static "js/bootstrap.js" %}"></script>
+{% else %}
+  <script type="text/javascript" src="{% static "js/bootstrap.min.js" %}"></script>
+{% endif %}
+<script type="text/javascript" src="{% static "js/base.js" %}"></script>
+<script type="text/javascript" nonce="{{ request.csp_nonce }}">
+  {# Default values are to ensure JS parsing even if 500 error thrown #}
+  var isMember = {{ user.profile.is_member|yesno:"true,false" }},
+      userAlertCount = {{ user.docket_alerts.subscriptions.count|default:"0" }},
+      priceRtAlerts = parseFloat({{ MIN_DONATION.rt_alerts|default:0 }}),
+      maxFreeDocketAlerts = {{ MAX_FREE_DOCKET_ALERTS|default:0 }},
+      recapBonusAlerts = {{ DOCKET_ALERT_RECAP_BONUS|default:0 }};
+
+</script>
+
+{# Allows your own scripts in the footer. #}
+{% block footer-scripts %}{% endblock %}
+
+{# Record stats for non-superusers 1/10 times to save money #}
+{% if not user.is_superuser  %}
+  {% random_int 0 9 as rand %}
+  {% if rand == 0 %}
+    <script
+      defer
+      data-domain="courtlistener.com"
+      src="https://plausible.io/js/plausible.js"></script>
+  {% endif %}
+{% endif %}
+</body>
+</html>

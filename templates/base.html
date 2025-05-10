@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Paralegal System{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav class="bg-blue-800 text-white px-6 py-3 flex items-center justify-between">
+        <div class="font-bold text-xl">Paralegal</div>
+        <div>
+            <a href="/dashboard" class="mr-4 hover:underline">Dashboard</a>
+            <a href="/llm_services" class="mr-4 hover:underline">LLM Services</a>
+            <a href="/ai_users" class="mr-4 hover:underline">AI Users</a>
+            <a href="/settings" class="mr-4 hover:underline">Settings</a>
+            <a href="/help" class="hover:underline">Help</a>
+        </div>
+    </nav>
+    <div class="container mx-auto py-8">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="mb-4">
+              {% for category, message in messages %}
+                <div class="p-3 rounded mb-2 bg-{{ 'red' if category == 'error' else 'green' }}-100 text-{{ 'red' if category == 'error' else 'green' }}-800">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html> 

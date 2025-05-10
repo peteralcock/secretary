@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load extras partition_util text_filters %}
+
+{% block canonical %}{% get_canonical_element %}{% endblock %}
+
+
+{% block sidebar %}{% endblock %}
+
+{% block navbar-o %}active{% endblock %}
+
+{% block title %}
+  {% if no_reporters %}
+    Reporter '{{ reporter }}' Not Found (404) – CourtListener.com
+  {% elif no_volumes or no_cases %}
+    No Cases Found for {{ volume_names.0 }} (404) – CourtListener.com
+  {% elif volumes %}
+    {{ reporter }}, {{ volume_names.0 }} – CourtListener.com
+  {% elif no_citation_found %}
+    No Citations Detected (400) - CourtListener.com
+  {% elif cases.paginator.count %}
+    Vol. {{ volume }} of {{ volume_names.0 }} ({{ reporter }}) – CourtListener.com
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+  <div class="hidden-sm hidden-xs col-md-1 col-lg-2"></div>
+  {% if no_reporters %}
+    <div class="col-xs-12 col-md-10 col-lg-8">
+      <h1>Unable to Find Reporter with Abbreviation of '{{ reporter|nbsp }}'</h1>
+      <p>This can sometimes happen if you have a typo in the URL you typed in, or when we have a bug in our system.
+      </p>
+      <p>Sorry about this. Please try again or try looking up a different reporter abbreviation.
+      </p>
+      <p class="v-offset-above-2">
+        <a href="{% url "citation_homepage" %}"
+           class="btn btn-primary btn-lg">Look Up Another Citation</a></p>
+    </div>
+  {% elif no_volumes or no_cases %}
+    <div class="col-xs-12 col-md-10 col-lg-8">
+      <h1>Unable to Find any Citations for {{ volume_names|oxford_join:"or" }} ({{ reporter|nbsp }})
+      </h1>
+      <p>This usually means that <em>{{ reporter }}</em> is a valid reporter abbreviation, but that we don't have any cases properly identified in that reporter.
+      </p>
+      <p>Sorry about this.</p>
+      <p class="v-offset-above-2">
+        <a href="{% url "citation_homepage" %}"
+           class="btn btn-primary btn-lg">Look Up Another Citation</a></p>
+    </div>
+  {% elif volumes %}
+    {# This lists the volumes in a given reporter #}
+    <div class="col-xs-12 col-md-10 col-lg-8 text-center">
+      <h1>Volumes</h1> <h3 class="alt gray">&mdash; of the &mdash;</h3> <h1>{{ volume_names|oxford_join }}&nbsp; ({{ reporter|nbsp }})</h1>
+      {% include "includes/reporter_variations.html" %}
+    </div>
+    <div class="hidden-sm hidden-xs col-md-1 col-lg-2"></div>
+    <div class="clearfix"></div>
+    <div class="hidden-sm hidden-xs col-md-1 col-lg-2"></div>
+    <div class="col-xs-12 col-md-10 col-lg-8">
+      <div class="row v-offset-above-2">
+        {% for volume in volumes %}
+          <div class="col-xs-2 text-center">
+            <h4><a href="{% url "citation_redirector" reporter volume %}">{{ volume }}</a></h4>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% elif no_citation_found %}
+    <div class="col-xs-12 col-md-10 col-lg-8">
+      <h1>No Citations Detected</h1>
+      <p>There seems to be a problem with your input! We couldn't find any citations within the text.</p>
+      <p>Please try looking up a different piece of text.</p>
+      <p class="v-offset-above-2">
+        <a href="{% url "citation_homepage" %}"
+          class="btn btn-primary btn-lg">Look Up Another Citation</a></p>
+    </div>
+  {% elif cases.paginator.count %}
+    {# This lists the cases in a given reporter & volume #}
+    <div class="col-xs-12 col-md-10 col-lg-8 text-center">
+      <h1>Volume
+      {% if volume_previous %}
+        <a title="Vol. {{ volume_previous }}" href="{% url "citation_redirector" reporter|slugify volume_previous %}" class="btn btn-xs btn-default"><i class="fa fa-chevron-left"></i> </a>
+      {% endif %}
+        {{ volume }}
+      {% if volume_next %}
+        <a title="Vol. {{ volume_next }}" href="{% url "citation_redirector" reporter|slugify volume_next %}" class="btn btn-xs btn-default"><i class="fa fa-chevron-right"></i> </a>
+      {% endif %}
+      </h1>
+      <h3 class="alt gray">&mdash; of the &mdash;</h3>
+      <h1>
+        <a href="{% url "citation_redirector" reporter|slugify %}">{{ volume_names|oxford_join }}</a>&nbsp;({{ reporter|nbsp }})
+      </h1>
+      {% include "includes/reporter_variations.html" %}
+      {% include "includes/pagination.html" with page_obj=cases%}
+    </div>
+    <div class="hidden-sm hidden-xs col-md-1 col-lg-2"></div>
+    <div class="clearfix"></div>
+    <div class="hidden-sm hidden-xs col-md-1 col-lg-2"></div>
+    <div class="col-xs-12 col-md-10 col-lg-8">
+    {% for case in cases %}
+      <article class="{% cycle "odd" "even" %}">
+      <h3 class="bottom serif">
+        <a href="{{ case.get_absolute_url }}"
+           class="visitable"
+           {% if case.blocked %}rel="nofollow"{% endif %}
+        >{{ case|best_case_name|safe|v_wrapper }}</a>
+      </h3>
+      <div class="bottom">
+        <div class="inline-block">
+          <span class="meta-data-header">Date Filed:</span>
+          <time class="meta-data-value" datetime="{{ case.date_filed|date:"Y-m-d" }}">{{ case.date_filed|date:"F jS, Y"|default:"Unknown Date" }}
+          </time>
+        </div>
+        <div class="inline-block">
+          <span class="meta-data-header">Citations:</span>
+          <span class="meta-data-value">{{ case.citation_string }}</span>
+        </div>
+        {% if case.docket.docket_number %}
+          <div class="inline-block">
+            <span class="meta-data-header">Docket Number:</span>
+            <span class="meta-data-value select-all">{{ case.docket.docket_number }}</span>
+          </div>
+        {% endif %}
+      </div>
+      </article>
+    {% endfor %}
+    {% include "includes/pagination.html" with page_obj=cases only%}
+    </div>
+  {% endif %}
+  <div class="hidden-sm hidden-xs col-md-1 col-lg-2"></div>
+
+{% endblock %}

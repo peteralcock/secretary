@@ -1,0 +1,50 @@
+# Python stuff
+.venv
+.env.json
+*.egg-info
+.dmypy.json
+
+# pyenv
+#   For a library or package, you might want to ignore these files since the
+#   code is intended to run in multiple environments; otherwise, check them in:
+.python-version
+
+# no compiled files!
+*.class
+*.pyc
+*~
+*.iml
+*.retry
+
+# Javascript Dev Bundles
+cl/node_modules/
+cl/assets/bundles
+
+# Downloaded and generated assets
+cl/assets/media/bulk-data/
+cl/assets/media/financial-disclosures/
+cl/assets/media/harvard_corpus/
+cl/assets/media/recap-data/
+cl/assets/media/recap_processing_queue/
+cl/assets/media/xml/
+cl/assets/static/
+cl/assets/static-global/js/react
+cl/assets/static-global/css/tailwind_styles.css
+
+# IntelliJ IDEA files
+.idea
+
+# Hyperscan db
+.hyperscan/
+
+# Dev personal stuff - never check in these things with keys or codes!
+cl/settings/*private.py
+cl/settings/google_auth.json
+.DS_Store
+.dir-locals.el
+/.env.dev
+/.env
+
+
+.vscode/*
+

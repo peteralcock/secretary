@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load markdown_deux_tags %}
+{% load humanize %}
+{% load extras %}
+{% load static %}
+
+{% block title %}Tag: &quot;{{ tag.name }}&quot; by {{ tag.user.username }}, {{  tag.view_count|intcomma }} view{{ tag.view_count|pluralize }} – CourtListener.com{% endblock %}
+{% block og_title %}Tag: &quot;{{ tag.name }}&quot; by {{ tag.user.username }}, {{  tag.view_count|intcomma }} view{{ tag.view_count|pluralize }} – CourtListener.com{% endblock %}
+{% block description %}{{ tag.user.username }} created tag &quot;{{ tag.name }}&quot; containing {{ total_tag_count|intcomma }} items. Tags allow you to create public and private collections of items you wish to track.
+{% endblock %}
+{% block og_description %}{{ tag.user.username }} created tag &quot;{{ tag.name }}&quot; containing {{ total_tag_count|intcomma }} items. Tags allow you to create public and private collections of items you wish to track.
+{% endblock %}
+{% block og_image %}{% get_full_host %}{% static "png/og-image-tag-300x300.png" %}{% endblock %}
+
+{% block footer-scripts %}
+  <script type="text/javascript"
+          src="{% static "js/react/main.js" %}"></script>
+  <script type="text/javascript"
+          src="{% static "js/react/vendor.js" %}"></script>
+  <script defer type="text/javascript"
+          src="{% static "js/buy_pacer_modal.js" %}"></script>
+  <script defer type="text/javascript"
+          src="{% static "js/tag-utils.js" %}"></script>
+{% endblock %}
+
+{% block sidebar %}{% endblock %}
+{% block content %}
+  <div class="hidden-xs hidden-sm col-md-1 col-lg-2"></div>
+  <div class="col-xs-12 col-md-10 col-lg-8">
+
+    <div id="react-root"
+         data-page-owner="{{ is_page_owner }}"
+         {% if perms.favorites.change_usertag %}
+           data-admin-url="{% url "admin:favorites_usertag_change" tag.id %}"
+         {% endif %}
+         data-description="{{ tag.description }}"
+         data-id="{{ tag.id }}"
+         data-title="{{ tag.title }}"
+         data-user="{{ tag.user }}"
+         data-published="{{ tag.published }}"
+         data-date-created-date="{{ tag.date_created|date }}"
+         data-view-count="{{ tag.view_count }}"
+         data-name="{{ tag.name }}">
+    </div>
+
+
+    {% for docket in dockets %}
+      {% if forloop.first %}
+        <h3 class="v-offset-above-3" id="tag-list-title"><i class="fa-list fa grey" title="Dockets" id="docket-icon"></i> {{ tag.dockets.all.count|intcomma }} Tagged Docket{{ tag.dockets.all.count|pluralize }}</h3>
+        <div id="docket-list">
+          <ul>
+      {% endif %}
+            {% include "includes/buy_pacer_modal.html" %}
+            {% include "includes/docket_li.html" %}
+      {% if forloop.last %}
+          </ul>
+        </div>
+      {% endif %}
+    {% empty %}
+      <h3 class="v-offset-above-3">Nothing tagged yet</h3>
+    {% endfor %}
+  </div>
+  <div class="hidden-xs hidden-sm col-md-1 col-lg-2"></div>
+{% endblock %}

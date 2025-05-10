@@ -29,7 +29,8 @@ except ImportError:
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "devsecret")
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///paralegal.db'
+# Use Postgres if DATABASE_URL is set, otherwise default to SQLite
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///paralegal.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -140,6 +141,15 @@ class SMTPIMAPProfile(db.Model):
     @password.setter
     def password(self, value):
         self._password = encrypt_value(value)
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    type = db.Column(db.String(32), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    read = db.Column(db.Boolean, default=False)
+    user = db.relationship('User', backref=db.backref('notifications', lazy=True))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -331,7 +341,7 @@ def dashboard():
     user_doc_count = sum(1 for d in recent_legal_docs if d.get('user_id') == user_id)
     user_event_count = sum(1 for e in upcoming_events if e.get('user_id') == user_id)
     # Notifications: last 10 results for this user
-    notifications = LegalDocumentResult.query.filter_by(user_id=user_id).order_by(LegalDocumentResult.created_at.desc()).limit(10).all() if user_id else []
+    notifications = Notification.query.filter_by(user_id=user_id, read=False).order_by(Notification.created_at.desc()).limit(10).all() if user_id else []
     # AI users for this user
     ai_users = AIUser.query.filter_by(user_id=current_user.id).all()
     return render_template(
@@ -782,6 +792,14 @@ def monitor_inbox(ai_id):
     monitor_inbox_for_ai_user.delay(ai_id, user_id=current_user.id)
     flash('Inbox monitoring task started for AI user.', 'info')
     return redirect(url_for('ai_users'))
+
+@app.route('/notifications/mark_all_read', methods=['POST'])
+@login_required
+def mark_all_notifications_read():
+    Notification.query.filter_by(user_id=current_user.id, read=False).update({'read': True})
+    db.session.commit()
+    flash('All notifications marked as read.', 'success')
+    return redirect(url_for('dashboard'))
 
 @app.errorhandler(500)
 def internal_error(error):

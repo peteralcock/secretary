@@ -1,0 +1,129 @@
+{% extends "profile/nav.html" %}
+{% load static %}
+{% load text_filters %}
+{% load extras %}
+{% block title %} {{ page_title }} – CourtListener.com{% endblock %}
+
+{% block nav-alerts %}active{% endblock %}
+{% block footer-scripts %}
+  {% if DEBUG %}
+    <script src="{% static "js/jquery.bootstrap-growl.js" %}"></script>
+  {% else %}
+    <script src="{% static "js/jquery.bootstrap-growl.min.js" %}"></script>
+  {% endif %}
+  <script defer type="text/javascript"
+          src="{% static "js/toggle_settings.js" %}"></script>
+  <script defer type="text/javascript"
+          src="{% static "js/responsive-table.js" %}"></script>
+{% endblock %}
+
+
+{% block content %}
+  {# Navigation Tabs #}
+  {% include "includes/alerts-tabs.html" %}
+
+{% if not search_alerts and not docket_alerts %}
+  {# No alerts yet. Tell the user about them. #}
+  <div class="hidden-xs col-sm-1 col-md-3"></div>
+  <div class="col-xs-12 col-sm-10 col-md-6 text-center">
+    <h1>CourtListener {% if page == "docket_alerts" %} RECAP Docket {% else %} Search {% endif %} Alerts</h1>
+    <h3 class="caps gray">You have not made any {% if page == "docket_alerts" %} RECAP Docket {% else %} Search {% endif %} alerts</h3>
+    <p>CourtListener provides two types of alerts, Search Alerts that let you follow cases and topics of interest to you, and RECAP Docket Alerts, which let you follow PACER dockets of interest.
+    </p>
+    <p>
+      <a href="{% url "alert_help" %}" class="btn btn-lg btn-primary">Learn More</a>
+    </p>
+  </div>
+  <div class="hidden-xs col-sm-1 col-md-3"></div>
+{% else %}
+  {# We have either search or docket alerts. #}
+  {% if search_alerts %}
+    <div class="col-xs-12">
+      <h2>Search Alerts for Case Law and Oral Arguments</h2>
+    </div>
+    <div class="col-xs-12">
+      <div class="table-responsive responsive-table-wrapper">
+        <table class="table settings-table">
+          {% include "includes/search_alerts/table_header.html" with is_profile_dashboard=True%}
+          <tbody>
+          {% for alert in search_alerts %}
+            {% include "includes/search_alerts/table_row.html" with alert=alert is_profile_dashboard=True%}
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if docket_alerts %}
+    <div class="col-xs-12">
+      <h2>RECAP Docket Alerts for PACER Cases</h2>
+      {% if user.profile.unlimited_docket_alerts %}
+        <h3 class="gray caps">🎉 Your account has unlimited docket alerts</h3>
+      {% elif user.profile.email_grants_unlimited_docket_alerts %}
+        <h3 class="gray caps">🎉 Your email address provides you unlimited docket alerts</h3>
+     {% elif user.profile.is_member %}
+        <h3 class="gray caps">🎉 Being a member provides you unlimited docket alerts</h3>
+      {% endif %}
+
+      <div class="table-responsive responsive-table-wrapper">
+        <table id="dockets-table" class="table settings-table">
+          <thead>
+          <tr>
+              <th data-label="Case Name"><a class="no-underline black-link" href="?{% url_replace request 'name' %}">Case Name{% sort_caret request 'name' %}</a></th>
+              <th data-label="Court"><a class="no-underline black-link" href="?{% url_replace request 'court' %}">Court{% sort_caret request 'court' %}</a></th>
+              <th data-label="Docket Number"><a class="no-underline black-link" href="?{% url_replace request 'docket_number' %}">Docket Number{% sort_caret request 'docket_number' %}</a></th>
+              <th data-label="Date Filed"><a class="no-underline black-link" href="?{% url_replace request 'date_filed' %}">Date Filed{% sort_caret request 'date_filed' %}</a></th>
+              <th data-label="Last&nbsp;Hit" colspan="2"><a class="no-underline black-link" href="?{% url_replace request 'hit' %}"> Last&nbsp;Hit{% sort_caret request 'hit' %}</a></th>
+          </tr>
+          </thead>
+          <tbody>
+          {% for alert in docket_alerts %}
+            <tr>
+              <td>
+                <p class="bottom">
+                  <a href="{{ alert.docket.get_absolute_url }}">
+                    {{ alert.docket|best_case_name|safe|v_wrapper }}
+                  </a>
+                </p>
+              </td>
+              <td>
+                <p class="bottom">
+                  {{ alert.docket.court.short_name }}
+                </p>
+              </td>
+              <td>
+                <p class="bottom">
+                  {{ alert.docket.docket_number }}
+                </p>
+              </td>
+              <td>
+                <p class="bottom">
+                  {{ alert.docket.date_filed }}
+                </p>
+              </td>
+              <td>{{ alert.date_last_hit|default:"Never" }}</td>
+              <td class="right">
+                <a href="{% url "toggle_docket_alert" %}"
+                   class="btn btn-danger btn-xs toggle-docket-alert"
+                   data-id="{{ alert.docket.pk }}"
+                   data-enable-message="Re-Enable Alert"
+                   data-disable-message="Disable Alert"
+                   >
+                  <i class="fa fa-bell-slash-o"
+                     data-enable-icon-class="fa-bell"
+                     data-disable-icon-class="fa-bell-slash-o"></i> <span class="alert_btn_txt">Disable Alert</span>
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p><a
+        href="{% url "alert_help" %}"
+        class="btn btn-default">Learn More About RECAP Alerts</a></p>
+    </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

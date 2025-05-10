@@ -96,4 +96,44 @@ def test_analyze_legal_document_handles_missing_fields(mock_llm, tmp_path):
         for file in files:
             if file.endswith('.json'):
                 found = True
-    assert found 
+    assert found
+
+@patch('celery_worker.imaplib.IMAP4_SSL')
+@patch('celery_worker.filter_and_categorize_email')
+def test_monitor_inbox_for_ai_user_creates_results_and_notifications(mock_filter, mock_imap, tmp_path, monkeypatch):
+    # Setup DB and models
+    from app import db, User, AIUser, SMTPIMAPProfile, LegalDocumentResult, Notification
+    db.create_all()
+    user = User(username='testuser', email='test@example.com')
+    user.set_password('pw')
+    db.session.add(user)
+    db.session.commit()
+    ai = AIUser(user_id=user.id, name='AI', mode='full-auto')
+    db.session.add(ai)
+    db.session.commit()
+    profile = SMTPIMAPProfile(user_id=user.id, ai_user_id=ai.id, name='imap', type='imap', host='host', port=993, username='u', _password='pw', use_ssl=True)
+    db.session.add(profile)
+    db.session.commit()
+    # Mock IMAP to return one unseen email
+    instance = mock_imap.return_value
+    instance.login.return_value = 'OK'
+    instance.select.return_value = ('OK', [b'1'])
+    instance.search.return_value = ('OK', [b'1'])
+    # Simulate fetch returns a simple email
+    import email
+    msg = email.message.EmailMessage()
+    msg['Subject'] = 'Test Subject'
+    msg['From'] = 'sender@example.com'
+    msg.set_content('Test body')
+    instance.fetch.return_value = ('OK', [(b'1', msg.as_bytes())])
+    # Mock filter_and_categorize_email
+    mock_filter.return_value = {'category': 'legal', 'summary': 'summary'}
+    # Run task
+    from celery_worker import monitor_inbox_for_ai_user
+    monitor_inbox_for_ai_user(ai.id)
+    # Check DB
+    results = LegalDocumentResult.query.filter_by(user_id=user.id).all()
+    notifs = Notification.query.filter_by(user_id=user.id).all()
+    assert results, 'No LegalDocumentResult created'
+    assert notifs, 'No Notification created'
+    assert 'Test Subject' in notifs[0].message 

@@ -23,22 +23,25 @@
     </nav>
     <div class="pt-20"> <!-- Add padding to push content below nav -->
     <div class="container mx-auto py-8">
-        <!-- Notifications Section -->
+        <!-- Notifications Section (unread only) -->
         {% if notifications %}
         <div class="mb-6">
-            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded shadow">
-                <div class="font-semibold text-yellow-800 mb-2">Notifications</div>
-                <ul>
-                    {% for n in notifications %}
-                    <li class="mb-1 text-sm">
-                        <span class="font-bold">[{{ n.result_type|capitalize }}]</span>
-                        {% if n.result_type == 'qa' %}Q: <span class="italic">{{ n.question }}</span> — {% endif %}
-                        {% if n.result_type == 'analysis' %}For <span class="italic">{{ n.party }}</span> — {% endif %}
-                        {{ n.content[:120] }}{% if n.content|length > 120 %}...{% endif %}
-                        <span class="text-gray-400 text-xs">({{ n.created_at.strftime('%Y-%m-%d %H:%M') }})</span>
-                    </li>
-                    {% endfor %}
-                </ul>
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded shadow flex items-center justify-between">
+                <div>
+                    <div class="font-semibold text-yellow-800 mb-2">Notifications</div>
+                    <ul>
+                        {% for n in notifications %}
+                        <li class="mb-1 text-sm">
+                            <span class="font-bold">[{{ n.type|capitalize }}]</span>
+                            {{ n.message }}
+                            <span class="text-gray-400 text-xs">({{ n.created_at.strftime('%Y-%m-%d %H:%M') }})</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <form method="post" action="/notifications/mark_all_read">
+                    <button type="submit" class="ml-4 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs">Mark all as read</button>
+                </form>
             </div>
         </div>
         {% endif %}

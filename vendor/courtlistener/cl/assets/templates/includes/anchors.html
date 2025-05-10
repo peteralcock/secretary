@@ -1,0 +1,17 @@
+{% load static %}
+
+{% if DEBUG %}
+    <script src="{% static "js/anchor.js" %}"></script>
+{% else %}
+    <script src="{% static "js/anchor.min.js" %}"></script>
+{% endif %}
+
+<script type="text/javascript" nonce="{{ request.csp_nonce }}">
+    $(document).ready(function () {
+        anchors.options = {
+            'visible': 'touch',
+            'class': 'gray'
+        };
+        anchors.add();
+    });
+</script>

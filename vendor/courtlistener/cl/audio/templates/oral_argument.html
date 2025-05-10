@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% load admin_urls %}
+{% load extras %}
+{% load static %}
+{% load text_filters %}
+
+{% block canonical %}{% get_canonical_element %}{% endblock %}
+{% block title %}Oral Argument for {{ title }} – CourtListener.com{% endblock %}
+{% block og_title %}Oral Argument for {{ title }} – CourtListener.com{% endblock %}
+{% block description %}Oral Argument for {{ title }}{% endblock %}
+{% block og_description %}Oral Argument for {{ title }}{% endblock %}
+
+{% block navbar-oa %}active{% endblock %}
+
+{% block head %}
+    <meta property="og:audio:url"
+          content="{{ af.local_path_mp3.url }}">
+    <meta property="og:audio:secure_url" content="{{ af.local_path_mp3.url }}">
+    <meta property="og:audio:type" content="audio/mp3">
+
+    <link type="text/css" href="{% static "skin/jplayer.blue.monday.css" %}"
+          rel="stylesheet"/>
+{% endblock %}
+
+{% block footer-scripts %}
+  <script defer type="text/javascript"
+          src="{% static "js/jquery.NobleCount.min.js" %}"></script>
+  <script defer type="text/javascript"
+          src="{% static "js/save-notes.js" %}"></script>
+  <script defer type="text/javascript"
+          src="{% static "js/jquery.jplayer.min.js" %}"></script>
+  <script type="text/javascript" nonce="{{ request.csp_nonce }}">
+    $(document).ready(function () {
+      $("#jquery_jplayer_1").jPlayer({
+        ready: function (event) {
+          $(this).jPlayer("setMedia", {
+            title: "{{ af|best_case_name }}",
+            mp3: "{{ af.local_path_mp3.url }}"
+          });
+        },
+        swfPath: "{% static "swf/Jplayer.swf" %}"
+      });
+    });
+  </script>
+{% endblock %}
+
+{% block sidebar %}
+    <div class="col-sm-3" id="sidebar">
+        {# show the admin tools if applicable #}
+        {% if perms.search.change_docket or perms.audio.change_audio %}
+            <div class="sidebar-section">
+                <h3><span>Admin</span></h3>
+                <p>
+                    {% if perms.search.change_docket %}
+                        <a href="{% url 'admin:search_docket_change' af.docket.pk %}"
+                           class="btn btn-primary btn-xs">Docket</a>
+                    {% endif %}
+                    {% if perms.audio.change_audio %}
+                        <a href="{% url 'admin:audio_audio_change' af.pk%}"
+                           class="btn btn-primary btn-xs">Audio File</a>
+                    {% endif %}
+                    {% if request.user.is_superuser %}
+                      {% if private %}
+                      <div class="btn btn-danger btn-xs">Blocked from Search Engines</div>
+                      {% endif %}
+                    {% endif %}
+                </p>
+            </div>
+        {% endif %}
+
+        {# show this div if there is a note, otherwise, put it in place, in anticipation of it becoming one. #}
+        <div class="{% if not note_form.instance.audio_id %}hidden{% endif %} sidebar-section"
+             id="sidebar-notes">
+            <div>
+                <h3>
+                    <span>Your Notes</span>
+                    <span class="edit" data-toggle="modal" data-target="#modal-save-note">
+                     (<a href="#note-editor">edit</a>)
+                     <i class="fa fa-pencil gray pointer"></i>
+                     </span>
+                </h3>
+
+                <p id="sidebar-notes-text">
+                    {{ note_form.instance.notes|default:"(none)" }}
+                </p>
+            </div>
+        </div>
+
+        {% include "includes/donate_sidebar.html" with referrer="oa-donate-now" %}
+        {% include "includes/social_links.html" %}
+
+    </div>
+{% endblock %}
+
+
+{% block content %}
+    <article class="col-sm-9">
+
+
+        <h2 class="inline">{{ af|best_case_name|safe|v_wrapper }}</h2>
+        {% include "includes/notes_modal.html" %}
+
+        <h3>{{ af.docket.court }}</h3>
+        <p>
+          {% include "includes/add_note_button.html" with form_instance_id=note_form.instance.audio_id %}
+        </p>
+        <p class="bottom">
+            <span class="meta-data-header">Date Argued:</span>
+            <span class="meta-data-value">
+                {% if af.docket.date_argued %}
+                    {{ af.docket.date_argued|date:"F jS, Y" }}
+                {% else %}
+                    Unknown Date
+                {% endif %}
+            </span>
+        </p>
+
+        {% if af.processing_complete %}
+        <p class="bottom">
+            <span class="meta-data-header">Duration:</span>
+            <span class="meta-data-value">{{ af.duration|naturalduration }}</span>
+        </p>
+        {% endif %}
+
+        <p class="bottom">
+            {% if af.docket.docket_number %}
+                <span class="meta-data-header">Docket Number: </span>
+                <a
+                    href="/?type=r&amp;docket_number={{ af.docket.docket_number }}&amp;court={{ af.docket.court.pk }}"
+                    rel="nofollow"
+                    data-toggle="tooltip"
+                    data-placement="right"
+                    title="Search for this docket number in the RECAP Archive.">{{ af.docket.docket_number }}</a>
+            {% endif %}
+        </p>
+
+        <p class="bottom">
+            {% if af.panel.all.count > 0 %}
+                <span class="meta-data-header">Judges:</span>
+                {% for p in af.panel.all %}
+                    <a href="{{ p.get_absolute_url }}">{{ p.name_full }}</a>{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            {% elif af.judges %}
+                <span class="meta-data-header">Judges:</span>
+                <span class="meta-data-value">{{ af.judges }}</span>
+            {% endif %}
+        </p>
+
+        <br>
+        {% if not af.processing_complete %}
+            <div class="col-xs-12 alert alert-warning">
+                <p class="bottom">This file has not yet completed processing on
+                    our server. Please try again in a few moments or if you
+                    prefer not to wait you may download the audio <a
+                            href="{{ af.download_url }}"
+                            rel="nofollow">directly from the
+                        court website</a>.
+                </p>
+            </div>
+        {% else %}
+            <div id="jquery_jplayer_1" class="jp-jplayer"></div>
+            <div id="jp_container_1" class="jp-audio">
+                <div class="jp-type-single">
+                    <div class="jp-gui jp-interface">
+                        <ul class="jp-controls">
+                            <li><a href="javascript:;"
+                                   class="jp-play">play</a></li>
+                            <li><a href="javascript:;"
+                                   class="jp-pause">pause</a></li>
+                            <li><a href="javascript:;"
+                                   class="jp-stop">stop</a></li>
+                            <li><a href="javascript:;"
+                                   class="jp-mute"
+                                   title="mute">mute</a></li>
+                            <li><a href="javascript:;"
+                                   class="jp-unmute"
+                                   title="unmute">unmute</a></li>
+                            <li><a href="javascript:;"
+                                   class="jp-volume-max"
+                                   title="max volume">max volume</a>
+                            </li>
+                        </ul>
+                        <div class="jp-progress">
+                            <div class="jp-seek-bar">
+                                <div class="jp-play-bar"></div>
+                            </div>
+                        </div>
+                        <div class="jp-volume-bar">
+                            <div class="jp-volume-bar-value"></div>
+                        </div>
+                        <div class="jp-time-holder">
+                            <div class="jp-current-time"></div>
+                            <div class="jp-duration"></div>
+                            <ul class="jp-toggles">
+                                <li><a href="javascript:;"
+                                       class="jp-repeat"
+                                       title="repeat">repeat</a></li>
+                                <li><a href="javascript:;"
+                                       class="jp-repeat-off"
+                                       title="repeat off">repeat off</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="jp-details">
+                        <ul>
+                            <li><span class="jp-title"></span></li>
+                        </ul>
+                    </div>
+                    <div class="jp-no-solution">
+                        <span>Update Required</span>
+                        To play the media update your browser to a recent version or update your <a href="https://get.adobe.com/flashplayer/"
+                            target="_blank">Flash plugin</a>.
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        {# Download original? #}
+        {% if af.download_url or af.local_path_mp3 %}
+            <p>
+                {% if af.download_url and not af.local_path_mp3 %}
+                    <a href="{{ af.download_url }}"
+                       rel="nofollow"
+                       class="btn btn-sm btn-primary">Download MP3</a>
+                {% elif not af.download_url and af.local_path_mp3 %}
+                    <a href="{{ af.local_path_mp3.url }}"
+                       class="btn btn-sm btn-primary">Download MP3</a>
+                {% elif af.download_url and af.local_path_mp3 %}
+                    <div class="btn-group btn-group-sm" role="group"
+                         aria-label="Download buttons">
+                        <a href="{{ af.local_path_mp3.url }}"
+                           class="btn btn-primary">Download MP3</a>
+
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button"
+                                    class="btn btn-primary dropdown-toggle"
+                                    data-toggle="dropdown" aria-haspopup="true"
+                                    aria-expanded="false">
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a href="{{ af.download_url }}"
+                                       rel="nofollow">Download
+                                    Original from Court</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                {% endif %}
+            </p>
+        {% endif %}
+    </article>
+{% endblock %}
