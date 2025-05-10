@@ -9,6 +9,16 @@ from ics import Calendar, Event
 # Configure Celery to use Redis as the broker
 celery_app = Celery('paralegal', broker='redis://redis:6379/0')
 
+try:
+    from app import db, LegalDocumentResult, User
+    from flask import Flask
+    flask_app = Flask(__name__)
+    flask_app.app_context().push()
+except Exception:
+    db = None
+    LegalDocumentResult = None
+    flask_app = None
+
 @celery_app.task
 def ocr_pdf(pdf_path, user_id=None):
     """
@@ -114,4 +124,120 @@ def analyze_legal_document(txt_path, user_id=None):
         return result
     except Exception as e:
         print(f"LLM analysis failed for {txt_path}: {e}")
+        return None
+
+@celery_app.task
+def summarize_legal_document(txt_path, user_id=None, doc_id=None):
+    """
+    Summarize the legal document in 3-5 sentences using the LLM.
+    """
+    try:
+        with open(txt_path, 'r') as f:
+            text = f.read()
+        prompt = (
+            "You are a legal assistant. Summarize the following legal document in 3-5 sentences, focusing on the main issues, parties, and outcomes.\n\n"
+            f"Document Text:\n{text[:4000]}"
+        )
+        model = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash",
+            temperature=0.3,
+            google_api_key=GEMINI_API_KEY
+        )
+        response = model.invoke(prompt)
+        summary = response.content if hasattr(response, "content") else str(response)
+        # Save summary as a .summary.txt file next to the original txt
+        summary_path = txt_path + ".summary.txt"
+        with open(summary_path, 'w') as out:
+            out.write(summary)
+        print(f"Saved summary to {summary_path}")
+        # Save to DB if possible
+        if db and LegalDocumentResult and user_id and doc_id:
+            result = LegalDocumentResult(
+                user_id=user_id,
+                doc_id=doc_id,
+                result_type='summary',
+                content=summary
+            )
+            db.session.add(result)
+            db.session.commit()
+        return summary_path
+    except Exception as e:
+        print(f"Summarization failed for {txt_path}: {e}")
+        return None
+
+@celery_app.task
+def qa_legal_document(txt_path, question, user_id=None, doc_id=None):
+    """
+    Answer a user question about the legal document using the LLM.
+    """
+    try:
+        with open(txt_path, 'r') as f:
+            text = f.read()
+        prompt = (
+            "You are a legal assistant. Given the following legal document, answer the user's question as clearly and concisely as possible.\n\n"
+            f"Document Text:\n{text[:4000]}\n\nQuestion: {question}\nAnswer:"
+        )
+        model = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash",
+            temperature=0.2,
+            google_api_key=GEMINI_API_KEY
+        )
+        response = model.invoke(prompt)
+        answer = response.content if hasattr(response, "content") else str(response)
+        print(f"QA answer: {answer}")
+        # Save to DB if possible
+        if db and LegalDocumentResult and user_id and doc_id:
+            result = LegalDocumentResult(
+                user_id=user_id,
+                doc_id=doc_id,
+                result_type='qa',
+                content=answer,
+                question=question
+            )
+            db.session.add(result)
+            db.session.commit()
+        return answer
+    except Exception as e:
+        print(f"QA failed for {txt_path}: {e}")
+        return None
+
+@celery_app.task
+def analyze_for_party(txt_path, party, user_id=None, doc_id=None):
+    """
+    Generate legal analysis in support of either the defendant or plaintiff.
+    """
+    try:
+        with open(txt_path, 'r') as f:
+            text = f.read()
+        prompt = (
+            f"You are a legal assistant. Read the following legal document and generate a legal analysis in support of the {party}. "
+            "List key arguments, cite relevant facts, and suggest possible legal precedents if appropriate.\n\n"
+            f"Document Text:\n{text[:4000]}"
+        )
+        model = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash",
+            temperature=0.3,
+            google_api_key=GEMINI_API_KEY
+        )
+        response = model.invoke(prompt)
+        analysis = response.content if hasattr(response, "content") else str(response)
+        # Save analysis as a .analysis.{party}.txt file
+        analysis_path = txt_path + f".analysis.{party}.txt"
+        with open(analysis_path, 'w') as out:
+            out.write(analysis)
+        print(f"Saved {party} analysis to {analysis_path}")
+        # Save to DB if possible
+        if db and LegalDocumentResult and user_id and doc_id:
+            result = LegalDocumentResult(
+                user_id=user_id,
+                doc_id=doc_id,
+                result_type='analysis',
+                content=analysis,
+                party=party
+            )
+            db.session.add(result)
+            db.session.commit()
+        return analysis_path
+    except Exception as e:
+        print(f"Legal analysis for {party} failed for {txt_path}: {e}")
         return None 

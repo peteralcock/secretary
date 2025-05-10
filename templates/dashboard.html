@@ -160,6 +160,25 @@
                             <td class="px-4 py-2">{{ doc.parties|join(', ') }}</td>
                             <td class="px-4 py-2 text-xs text-gray-600">{{ doc.raw_excerpt }}</td>
                         </tr>
+                        <tr>
+                            <td colspan="5" class="px-4 py-2 bg-gray-50">
+                                <form method="post" action="/summarize/{{ doc.case_number }}" class="inline">
+                                    <button type="submit" class="px-2 py-1 bg-blue-200 text-blue-900 rounded hover:bg-blue-300 text-xs">Summarize</button>
+                                </form>
+                                <form method="post" action="/ask/{{ doc.case_number }}" class="inline ml-2">
+                                    <input type="text" name="question" placeholder="Ask a question..." class="px-1 py-0.5 border rounded text-xs" required>
+                                    <button type="submit" class="px-2 py-1 bg-green-200 text-green-900 rounded hover:bg-green-300 text-xs">Ask</button>
+                                </form>
+                                <form method="post" action="/analyze/{{ doc.case_number }}" class="inline ml-2">
+                                    <input type="hidden" name="party" value="defendant">
+                                    <button type="submit" class="px-2 py-1 bg-purple-200 text-purple-900 rounded hover:bg-purple-300 text-xs">Analyze for Defendant</button>
+                                </form>
+                                <form method="post" action="/analyze/{{ doc.case_number }}" class="inline ml-2">
+                                    <input type="hidden" name="party" value="plaintiff">
+                                    <button type="submit" class="px-2 py-1 bg-pink-200 text-pink-900 rounded hover:bg-pink-300 text-xs">Analyze for Plaintiff</button>
+                                </form>
+                            </td>
+                        </tr>
                         {% else %}
                         <tr><td colspan="5" class="px-4 py-2 text-gray-400">No legal documents processed yet.</td></tr>
                         {% endfor %}

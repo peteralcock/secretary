@@ -14,9 +14,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 # Import Celery OCR task
 try:
-    from celery_worker import ocr_pdf
+    from celery_worker import ocr_pdf, summarize_legal_document, qa_legal_document, analyze_for_party
 except ImportError:
     ocr_pdf = None  # For local dev if celery_worker not available
+    summarize_legal_document = None
+    qa_legal_document = None
+    analyze_for_party = None
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "devsecret")
@@ -38,6 +41,18 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+class LegalDocumentResult(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    doc_id = db.Column(db.String(128), nullable=False)
+    result_type = db.Column(db.String(32), nullable=False)  # 'summary', 'qa', 'analysis'
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    question = db.Column(db.Text, nullable=True)
+    party = db.Column(db.String(32), nullable=True)
+
+    user = db.relationship('User', backref=db.backref('legal_results', lazy=True))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -266,6 +281,61 @@ def scoreboard():
 @app.route("/ics/<filename>")
 def download_ics(filename):
     return send_from_directory("/app/ics", filename, as_attachment=True)
+
+# Helper to get txt_path from doc_id (base name of JSON file)
+def get_txt_path_from_doc_id(doc_id):
+    llm_results_dir = '/app/llm_results'
+    json_path = os.path.join(llm_results_dir, f'{doc_id}.json')
+    if not os.path.exists(json_path):
+        return None
+    # Assume original txt is in /app/attachments or /app/llm_results
+    # Try both
+    txt_path = os.path.join('/app/llm_results', f'{doc_id}.txt')
+    if os.path.exists(txt_path):
+        return txt_path
+    txt_path = os.path.join('/app/attachments', f'{doc_id}.txt')
+    if os.path.exists(txt_path):
+        return txt_path
+    return None
+
+@app.route('/summarize/<doc_id>', methods=['POST'])
+@login_required
+def summarize_doc(doc_id):
+    if not summarize_legal_document:
+        return {"error": "Summarization not available."}, 500
+    txt_path = get_txt_path_from_doc_id(doc_id)
+    if not txt_path:
+        return {"error": "Document text not found."}, 404
+    task = summarize_legal_document.delay(txt_path)
+    return {"status": "Summarization started", "task_id": task.id}
+
+@app.route('/ask/<doc_id>', methods=['POST'])
+@login_required
+def ask_doc(doc_id):
+    if not qa_legal_document:
+        return {"error": "QA not available."}, 500
+    txt_path = get_txt_path_from_doc_id(doc_id)
+    if not txt_path:
+        return {"error": "Document text not found."}, 404
+    question = request.form.get('question')
+    if not question:
+        return {"error": "No question provided."}, 400
+    task = qa_legal_document.delay(txt_path, question)
+    return {"status": "QA started", "task_id": task.id}
+
+@app.route('/analyze/<doc_id>', methods=['POST'])
+@login_required
+def analyze_doc(doc_id):
+    if not analyze_for_party:
+        return {"error": "Analysis not available."}, 500
+    txt_path = get_txt_path_from_doc_id(doc_id)
+    if not txt_path:
+        return {"error": "Document text not found."}, 404
+    party = request.form.get('party')
+    if party not in ['defendant', 'plaintiff']:
+        return {"error": "Party must be 'defendant' or 'plaintiff'."}, 400
+    task = analyze_for_party.delay(txt_path, party)
+    return {"status": f"Analysis for {party} started", "task_id": task.id}
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True) 
