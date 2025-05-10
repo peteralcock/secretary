@@ -4,6 +4,7 @@ import os
 import json
 from config import GEMINI_API_KEY
 from langchain_google_genai import ChatGoogleGenerativeAI
+from ics import Calendar, Event
 
 # Configure Celery to use Redis as the broker
 celery_app = Celery('paralegal', broker='redis://redis:6379/0')
@@ -85,6 +86,26 @@ def analyze_legal_document(txt_path):
         with open(result_path, 'w') as out:
             json.dump(result, out)
         print(f"Saved LLM result to {result_path}")
+        # Generate ICS files for each event date
+        ics_dir = '/app/ics'
+        os.makedirs(ics_dir, exist_ok=True)
+        case_number = result.get('case_number', 'unknown')
+        doc_type = result.get('document_type', 'event')
+        for dt in result.get('event_dates', []):
+            c = Calendar()
+            e = Event()
+            e.name = f"{doc_type} for Case {case_number}"
+            e.begin = dt
+            e.description = f"{doc_type} in {result.get('court', '')} for case {case_number}. Parties: {', '.join(result.get('parties', []))}"
+            c.events.add(e)
+            safe_case = case_number.replace('/', '_').replace(' ', '_')
+            safe_doc = doc_type.replace(' ', '_')
+            safe_dt = dt.replace(':', '').replace('-', '').replace('T', '_')
+            ics_filename = f"{safe_case}_{safe_doc}_{safe_dt}.ics"
+            ics_path = os.path.join(ics_dir, ics_filename)
+            with open(ics_path, 'w') as icsfile:
+                icsfile.writelines(c)
+            print(f"Generated ICS file: {ics_path}")
         return result
     except Exception as e:
         print(f"LLM analysis failed for {txt_path}: {e}")

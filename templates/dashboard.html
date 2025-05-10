@@ -157,6 +157,14 @@
                         <span class="ml-2">Case: <span class="font-semibold">{{ event.case_number }}</span></span>
                         <span class="ml-2">Type: <span class="font-semibold">{{ event.document_type }}</span></span>
                         <span class="ml-2">Court: <span class="font-semibold">{{ event.court }}</span></span>
+                        {% set safe_case = event.case_number.replace('/', '_').replace(' ', '_') %}
+                        {% set safe_doc = event.document_type.replace(' ', '_') %}
+                        {% set safe_dt = event.date.replace(':', '').replace('-', '').replace('T', '_') %}
+                        {% set ics_filename = safe_case ~ '_' ~ safe_doc ~ '_' ~ safe_dt ~ '.ics' %}
+                        <a href="/ics/{{ ics_filename }}" class="ml-2 text-green-700 hover:underline" title="Download ICS">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="inline h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            Add to Calendar
+                        </a>
                     </li>
                     {% else %}
                     <li class="text-gray-400">No upcoming events found.</li>

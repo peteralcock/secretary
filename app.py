@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
 import json
 from agents.filtering_agent import filter_and_categorize_email
 from agents.response_agent import generate_property_management_response
@@ -175,6 +175,10 @@ def scoreboard():
         {"username": "carol", "replies": 5},
     ]
     return render_template("scoreboard.html", users=users)
+
+@app.route("/ics/<filename>")
+def download_ics(filename):
+    return send_from_directory("/app/ics", filename, as_attachment=True)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True) 
