@@ -126,6 +126,13 @@ def analyze_legal_document(txt_path, user_id=None):
         print(f"LLM analysis failed for {txt_path}: {e}")
         return None
 
+def get_user_gemini_key(user_id):
+    if db and User and user_id:
+        user = User.query.get(user_id)
+        if user and user.gemini_api_key:
+            return user.gemini_api_key
+    return GEMINI_API_KEY
+
 @celery_app.task
 def summarize_legal_document(txt_path, user_id=None, doc_id=None):
     """
@@ -138,10 +145,11 @@ def summarize_legal_document(txt_path, user_id=None, doc_id=None):
             "You are a legal assistant. Summarize the following legal document in 3-5 sentences, focusing on the main issues, parties, and outcomes.\n\n"
             f"Document Text:\n{text[:4000]}"
         )
+        api_key = get_user_gemini_key(user_id)
         model = ChatGoogleGenerativeAI(
             model="gemini-2.0-flash",
             temperature=0.3,
-            google_api_key=GEMINI_API_KEY
+            google_api_key=api_key
         )
         response = model.invoke(prompt)
         summary = response.content if hasattr(response, "content") else str(response)
@@ -177,10 +185,11 @@ def qa_legal_document(txt_path, question, user_id=None, doc_id=None):
             "You are a legal assistant. Given the following legal document, answer the user's question as clearly and concisely as possible.\n\n"
             f"Document Text:\n{text[:4000]}\n\nQuestion: {question}\nAnswer:"
         )
+        api_key = get_user_gemini_key(user_id)
         model = ChatGoogleGenerativeAI(
             model="gemini-2.0-flash",
             temperature=0.2,
-            google_api_key=GEMINI_API_KEY
+            google_api_key=api_key
         )
         response = model.invoke(prompt)
         answer = response.content if hasattr(response, "content") else str(response)
@@ -214,10 +223,11 @@ def analyze_for_party(txt_path, party, user_id=None, doc_id=None):
             "List key arguments, cite relevant facts, and suggest possible legal precedents if appropriate.\n\n"
             f"Document Text:\n{text[:4000]}"
         )
+        api_key = get_user_gemini_key(user_id)
         model = ChatGoogleGenerativeAI(
             model="gemini-2.0-flash",
             temperature=0.3,
-            google_api_key=GEMINI_API_KEY
+            google_api_key=api_key
         )
         response = model.invoke(prompt)
         analysis = response.content if hasattr(response, "content") else str(response)

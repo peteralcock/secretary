@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, jsonify, send_file
 import json
 from agents.filtering_agent import filter_and_categorize_email
 from agents.response_agent import generate_property_management_response
@@ -11,6 +11,14 @@ import glob
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from celery.result import AsyncResult
+import csv
+from io import StringIO, BytesIO
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+except ImportError:
+    pass
 
 # Import Celery OCR task
 try:
@@ -35,6 +43,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
+    gemini_api_key = db.Column(db.String(256), nullable=True)  # User's Gemini API key
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -243,6 +252,8 @@ def dashboard():
     # Per-user stats
     user_doc_count = sum(1 for d in recent_legal_docs if d.get('user_id') == user_id)
     user_event_count = sum(1 for e in upcoming_events if e.get('user_id') == user_id)
+    # Notifications: last 10 results for this user
+    notifications = LegalDocumentResult.query.filter_by(user_id=user_id).order_by(LegalDocumentResult.created_at.desc()).limit(10).all() if user_id else []
     return render_template(
         "dashboard.html",
         unaddressed=unaddressed,
@@ -259,7 +270,8 @@ def dashboard():
         upcoming_events=upcoming_events,
         current_user=current_user,
         user_doc_count=user_doc_count,
-        user_event_count=user_event_count
+        user_event_count=user_event_count,
+        notifications=notifications
     )
 
 @app.route("/inbox")
@@ -306,7 +318,8 @@ def summarize_doc(doc_id):
     txt_path = get_txt_path_from_doc_id(doc_id)
     if not txt_path:
         return {"error": "Document text not found."}, 404
-    task = summarize_legal_document.delay(txt_path)
+    user_id = current_user.get_id()
+    task = summarize_legal_document.delay(txt_path, user_id=user_id, doc_id=doc_id)
     return {"status": "Summarization started", "task_id": task.id}
 
 @app.route('/ask/<doc_id>', methods=['POST'])
@@ -320,7 +333,8 @@ def ask_doc(doc_id):
     question = request.form.get('question')
     if not question:
         return {"error": "No question provided."}, 400
-    task = qa_legal_document.delay(txt_path, question)
+    user_id = current_user.get_id()
+    task = qa_legal_document.delay(txt_path, question, user_id=user_id, doc_id=doc_id)
     return {"status": "QA started", "task_id": task.id}
 
 @app.route('/analyze/<doc_id>', methods=['POST'])
@@ -334,8 +348,103 @@ def analyze_doc(doc_id):
     party = request.form.get('party')
     if party not in ['defendant', 'plaintiff']:
         return {"error": "Party must be 'defendant' or 'plaintiff'."}, 400
-    task = analyze_for_party.delay(txt_path, party)
+    user_id = current_user.get_id()
+    task = analyze_for_party.delay(txt_path, party, user_id=user_id, doc_id=doc_id)
     return {"status": f"Analysis for {party} started", "task_id": task.id}
+
+from celery.result import AsyncResult
+
+@app.route('/task_status/<task_id>')
+@login_required
+def task_status(task_id):
+    # Check Celery task status
+    res = AsyncResult(task_id)
+    status = res.status
+    # Try to find result in DB for this user
+    user_id = current_user.get_id()
+    result = LegalDocumentResult.query.filter_by(user_id=user_id).order_by(LegalDocumentResult.created_at.desc()).first()
+    result_data = None
+    if result:
+        result_data = {
+            'result_type': result.result_type,
+            'content': result.content,
+            'question': result.question,
+            'party': result.party,
+            'created_at': result.created_at.isoformat()
+        }
+    return jsonify({'status': status, 'result': result_data})
+
+@app.route('/settings', methods=['GET', 'POST'])
+@login_required
+def user_settings():
+    if request.method == 'POST':
+        gemini_api_key = request.form.get('gemini_api_key')
+        current_user.gemini_api_key = gemini_api_key
+        db.session.commit()
+        flash('Gemini API key updated.')
+        return redirect(url_for('user_settings'))
+    return render_template('settings.html', gemini_api_key=current_user.gemini_api_key)
+
+@app.route('/results')
+@login_required
+def results():
+    q = request.args.get('q', '')
+    result_type = request.args.get('type')
+    party = request.args.get('party')
+    doc_id = request.args.get('doc_id')
+    query = LegalDocumentResult.query.filter_by(user_id=current_user.id)
+    if q:
+        query = query.filter(LegalDocumentResult.content.ilike(f'%{q}%'))
+    if result_type:
+        query = query.filter_by(result_type=result_type)
+    if party:
+        query = query.filter_by(party=party)
+    if doc_id:
+        query = query.filter_by(doc_id=doc_id)
+    results = query.order_by(LegalDocumentResult.created_at.desc()).all()
+    return render_template('results.html', results=results, q=q, result_type=result_type, party=party, doc_id=doc_id)
+
+@app.route('/results/export/csv')
+@login_required
+def export_results_csv():
+    query = LegalDocumentResult.query.filter_by(user_id=current_user.id)
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Type', 'Document', 'Party', 'Question', 'Content', 'Created'])
+    for r in query:
+        writer.writerow([r.result_type, r.doc_id, r.party or '', r.question or '', r.content, r.created_at])
+    output.seek(0)
+    return send_file(BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='results.csv')
+
+@app.route('/results/export/pdf')
+@login_required
+def export_results_pdf():
+    query = LegalDocumentResult.query.filter_by(user_id=current_user.id)
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    y = 750
+    for r in query:
+        c.drawString(30, y, f"Type: {r.result_type} | Doc: {r.doc_id} | Party: {r.party or ''} | Q: {r.question or ''}")
+        y -= 15
+        for line in r.content.splitlines():
+            c.drawString(40, y, line[:100])
+            y -= 12
+            if y < 50:
+                c.showPage()
+                y = 750
+        y -= 10
+        if y < 50:
+            c.showPage()
+            y = 750
+    c.save()
+    buffer.seek(0)
+    return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name='results.pdf')
+
+@app.route('/document/<doc_id>/results')
+@login_required
+def document_results(doc_id):
+    results = LegalDocumentResult.query.filter_by(user_id=current_user.id, doc_id=doc_id).order_by(LegalDocumentResult.created_at.desc()).all()
+    return render_template('document_results.html', doc_id=doc_id, results=results)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True) 

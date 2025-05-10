@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-4">User Settings</h1>
+    <form method="post" class="bg-white rounded shadow p-6 max-w-md">
+        <label class="block mb-2 font-semibold">Gemini API Key</label>
+        <input type="password" name="gemini_api_key" value="{{ gemini_api_key or '' }}" class="w-full border rounded px-3 py-2 mb-4" autocomplete="off">
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Update</button>
+    </form>
+    <div class="mt-4">
+        <a href="/dashboard" class="text-blue-700 hover:underline">&larr; Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %} 
