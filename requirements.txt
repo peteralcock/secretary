@@ -12,3 +12,5 @@ google-generativeai
 pytest
 psycopg2-binary
 selenium
+celery
+ocrmypdf
