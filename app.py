@@ -65,22 +65,21 @@ def dashboard():
     # We'll simulate by marking even IDs as replied
     for e in emails:
         e["replied"] = int(e["id"]) % 2 == 0
+        # Simulate legal communication detection
+        subj = e["subject"].lower()
+        sender = e["from"].lower()
+        legal_keywords = ["law", "court", "attorney", "judge", "legal", "firm", "clerk"]
+        e["is_legal_communication"] = any(k in subj or k in sender for k in legal_keywords)
+        # Simulate attachments
+        e["attachments"] = []
+        if any(word in subj for word in ["document", "attachment", "pdf", "serve", "motion", "order"]):
+            e["attachments"].append(f"{e['id']}_document.pdf")
         # Simulate categories using filtering agent (could be cached in DB in real app)
         if "category" not in e:
-            # Use a simple mapping for demo
-            subj = e["subject"].lower()
-            if "leak" in subj or "maintenance" in subj:
-                e["category"] = "maintenance_request"
-            elif "rent" in subj:
-                e["category"] = "rent_inquiry"
-            elif "lockout" in subj:
-                e["category"] = "lockout_emergency"
-            elif "lease" in subj:
-                e["category"] = "lease_question"
-            elif "spam" in subj or "congratulations" in subj:
-                e["category"] = "spam"
+            if e["is_legal_communication"]:
+                e["category"] = "legal_document"
             else:
-                e["category"] = "general_inquiry"
+                e["category"] = "general_communication"
         # Parse timestamp
         e["dt"] = datetime.fromisoformat(e["timestamp"])
     # Unaddressed messages

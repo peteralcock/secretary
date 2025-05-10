@@ -9,7 +9,7 @@
     <!-- Navigation Menu -->
     <nav class="bg-white shadow-md fixed w-full z-10 top-0 left-0">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="text-2xl font-bold text-blue-800">Secretary</div>
+            <div class="text-2xl font-bold text-blue-800">Paralegal</div>
             <div class="space-x-6">
                 <a href="/inbox" class="text-blue-700 hover:text-blue-900 font-semibold">Inbox</a>
                 <a href="/dashboard" class="text-blue-700 hover:text-blue-900 font-semibold">Dashboard</a>
@@ -20,7 +20,7 @@
     </nav>
     <div class="pt-20"> <!-- Add padding to push content below nav -->
     <div class="container mx-auto py-8">
-        <h1 class="text-4xl font-bold text-center text-blue-800 mb-8">📊 Property Management Dashboard</h1>
+        <h1 class="text-4xl font-bold text-center text-blue-800 mb-8">📊 Legal Document Dashboard</h1>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div class="bg-white rounded-xl shadow-lg p-6 text-center">
                 <div class="text-2xl font-bold text-blue-700">{{ emails|length }}</div>
@@ -28,7 +28,7 @@
             </div>
             <div class="bg-white rounded-xl shadow-lg p-6 text-center">
                 <div class="text-2xl font-bold text-purple-700">{{ category_counts.values()|sum }}</div>
-                <div class="text-gray-600">Total Issues</div>
+                <div class="text-gray-600">Total Legal Docs</div>
             </div>
             <div class="bg-white rounded-xl shadow-lg p-6 text-center">
                 <div class="text-2xl font-bold text-green-700">{{ emails|selectattr('replied')|select|list|length }}</div>
@@ -61,7 +61,7 @@
                 </ul>
             </div>
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Issue Counts</h2>
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Legal Document Types</h2>
                 <ul>
                     {% for cat, count in category_counts.items() %}
                     <li class="mb-1 flex justify-between">
@@ -94,7 +94,7 @@
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Top Issues</h2>
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Top Legal Issues</h2>
                 <ul>
                     {% for issue, count in top_issues %}
                     <li class="mb-1 flex justify-between">
@@ -106,7 +106,7 @@
                 <canvas id="topIssuesChart" class="mt-4"></canvas>
             </div>
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Top Categories</h2>
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Top Document Types</h2>
                 <ul>
                     {% for cat, count in top_categories %}
                     <li class="mb-1 flex justify-between">
@@ -129,7 +129,7 @@
         new Chart(document.getElementById('summaryChart'), {
             type: 'doughnut',
             data: {
-                labels: ['Total Emails', 'Total Issues', 'Total Drafted/Replies'],
+                labels: ['Total Emails', 'Total Legal Docs', 'Total Drafted/Replies'],
                 datasets: [{
                     data: [
                         {{ emails|length }},
@@ -156,7 +156,7 @@
             data: {
                 labels: Object.keys(byDay),
                 datasets: [{
-                    label: 'Issues',
+                    label: 'Legal Docs',
                     data: Object.values(byDay),
                     backgroundColor: 'rgba(59, 130, 246, 0.6)'
                 }]
@@ -169,7 +169,7 @@
             data: {
                 labels: Object.keys(byWeek),
                 datasets: [{
-                    label: 'Issues',
+                    label: 'Legal Docs',
                     data: Object.values(byWeek),
                     backgroundColor: 'rgba(16, 185, 129, 0.6)'
                 }]
@@ -182,7 +182,7 @@
             data: {
                 labels: Object.keys(byMonth),
                 datasets: [{
-                    label: 'Issues',
+                    label: 'Legal Docs',
                     data: Object.values(byMonth),
                     backgroundColor: 'rgba(168, 85, 247, 0.6)'
                 }]
