@@ -154,8 +154,9 @@ def dashboard():
             # Enqueue OCR task for each legal PDF attachment (simulate path)
             if e["is_legal_communication"] and ocr_pdf:
                 pdf_path = f"/app/attachments/{filename}"
-                # This will enqueue the OCR task in the background
-                ocr_pdf.delay(pdf_path)
+                user_id = current_user.get_id() if current_user.is_authenticated else None
+                # This will enqueue the OCR task in the background, with user_id for tracking
+                ocr_pdf.delay(pdf_path, user_id)
         # Simulate categories using filtering agent (could be cached in DB in real app)
         if "category" not in e:
             if e["is_legal_communication"]:
@@ -197,23 +198,36 @@ def dashboard():
     llm_results_dir = '/app/llm_results'
     recent_legal_docs = []
     upcoming_events = []
+    user_id = current_user.get_id() if current_user.is_authenticated else None
     if os.path.exists(llm_results_dir):
         for fpath in glob.glob(os.path.join(llm_results_dir, '*.json')):
             try:
                 with open(fpath) as f:
                     doc = json.load(f)
+                    # If user_id is in doc, filter by user if requested
+                    doc_user_id = doc.get('user_id')
                     recent_legal_docs.append(doc)
                     for dt in doc.get('event_dates', []):
                         upcoming_events.append({
                             'date': dt,
                             'case_number': doc.get('case_number'),
                             'document_type': doc.get('document_type'),
-                            'court': doc.get('court')
+                            'court': doc.get('court'),
+                            'user_id': doc_user_id
                         })
             except Exception as e:
                 print(f"Error loading LLM result {fpath}: {e}")
     # Sort events chronologically
     upcoming_events.sort(key=lambda x: x['date'])
+    # Filtering by user
+    filter_type = request.args.get('filter')
+    if filter_type == 'mydocs':
+        recent_legal_docs = [d for d in recent_legal_docs if d.get('user_id') == user_id]
+    if filter_type == 'myevents':
+        upcoming_events = [e for e in upcoming_events if e.get('user_id') == user_id]
+    # Per-user stats
+    user_doc_count = sum(1 for d in recent_legal_docs if d.get('user_id') == user_id)
+    user_event_count = sum(1 for e in upcoming_events if e.get('user_id') == user_id)
     return render_template(
         "dashboard.html",
         unaddressed=unaddressed,
@@ -228,7 +242,9 @@ def dashboard():
         top_categories=category_counts.most_common(5),
         recent_legal_docs=recent_legal_docs,
         upcoming_events=upcoming_events,
-        current_user=current_user
+        current_user=current_user,
+        user_doc_count=user_doc_count,
+        user_event_count=user_event_count
     )
 
 @app.route("/inbox")

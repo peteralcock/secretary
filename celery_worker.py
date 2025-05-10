@@ -10,7 +10,7 @@ from ics import Calendar, Event
 celery_app = Celery('paralegal', broker='redis://redis:6379/0')
 
 @celery_app.task
-def ocr_pdf(pdf_path):
+def ocr_pdf(pdf_path, user_id=None):
     """
     Run ocrmypdf on the given PDF and save the extracted text to a .txt file.
     """
@@ -23,13 +23,13 @@ def ocr_pdf(pdf_path):
         ], check=True)
         print(f"OCR complete for {pdf_path}, text saved to {txt_path}")
         # After OCR, trigger LLM analysis
-        analyze_legal_document.delay(txt_path)
+        analyze_legal_document.delay(txt_path, user_id)
     except Exception as e:
         print(f"OCR failed for {pdf_path}: {e}")
     return txt_path
 
 @celery_app.task
-def analyze_legal_document(txt_path):
+def analyze_legal_document(txt_path, user_id=None):
     """
     Call Gemini LLM to analyze the legal document text and extract metadata.
     """
@@ -77,6 +77,8 @@ def analyze_legal_document(txt_path):
         # Add excerpt if not present
         if 'raw_excerpt' not in result:
             result['raw_excerpt'] = text[:200]
+        # Add user_id to result
+        result['user_id'] = user_id
         print(f"LLM analysis for {txt_path}: {result}")
         # Save result to /app/llm_results/
         results_dir = '/app/llm_results'
@@ -101,7 +103,10 @@ def analyze_legal_document(txt_path):
             safe_case = case_number.replace('/', '_').replace(' ', '_')
             safe_doc = doc_type.replace(' ', '_')
             safe_dt = dt.replace(':', '').replace('-', '').replace('T', '_')
-            ics_filename = f"{safe_case}_{safe_doc}_{safe_dt}.ics"
+            ics_filename = f"{safe_case}_{safe_doc}_{safe_dt}"
+            if user_id:
+                ics_filename += f"_user{user_id}"
+            ics_filename += ".ics"
             ics_path = os.path.join(ics_dir, ics_filename)
             with open(ics_path, 'w') as icsfile:
                 icsfile.writelines(c)

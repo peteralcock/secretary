@@ -10,6 +10,7 @@
     <nav class="bg-white shadow-md fixed w-full z-10 top-0 left-0">
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="text-2xl font-bold text-blue-800">Paralegal</div>
+            <div class="text-gray-600 text-sm">Logged in as <span class="font-semibold">{{ current_user.username }}</span></div>
             <div class="space-x-6">
                 <a href="/inbox" class="text-blue-700 hover:text-blue-900 font-semibold">Inbox</a>
                 <a href="/dashboard" class="text-blue-700 hover:text-blue-900 font-semibold">Dashboard</a>
@@ -21,6 +22,16 @@
     <div class="pt-20"> <!-- Add padding to push content below nav -->
     <div class="container mx-auto py-8">
         <h1 class="text-4xl font-bold text-center text-blue-800 mb-8">📊 Legal Document Dashboard</h1>
+        <div class="flex justify-end mb-4 space-x-4">
+            <form method="get" action="/dashboard">
+                <input type="hidden" name="filter" value="mydocs">
+                <button type="submit" class="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-semibold">My Documents</button>
+            </form>
+            <form method="get" action="/dashboard">
+                <input type="hidden" name="filter" value="myevents">
+                <button type="submit" class="px-4 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 font-semibold">My Events</button>
+            </form>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div class="bg-white rounded-xl shadow-lg p-6 text-center">
                 <div class="text-2xl font-bold text-blue-700">{{ emails|length }}</div>
@@ -117,12 +128,19 @@
                 </ul>
             </div>
         </div>
+        <div class="mb-6 flex flex-col items-end">
+            <div class="bg-blue-50 text-blue-900 px-4 py-2 rounded shadow mb-2">
+                <span class="font-semibold">Your Stats:</span>
+                <span class="ml-2">Documents: <span class="font-bold">{{ user_doc_count }}</span></span>
+                <span class="ml-2">Events: <span class="font-bold">{{ user_event_count }}</span></span>
+            </div>
+        </div>
     </div>
     </div> <!-- End main content wrapper -->
     <div class="container mx-auto py-8">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Recent Legal Documents</h2>
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Recent Legal Documents{% if request.args.get('filter') == 'mydocs' %} (Mine){% endif %}</h2>
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead>
                         <tr>
@@ -149,7 +167,7 @@
                 </table>
             </div>
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Upcoming Legal Events</h2>
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Upcoming Legal Events{% if request.args.get('filter') == 'myevents' %} (Mine){% endif %}</h2>
                 <ul>
                     {% for event in upcoming_events %}
                     <li class="mb-2 border-b pb-2">
