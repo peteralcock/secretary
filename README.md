@@ -1,14 +1,11 @@
+![Secretary](logo-title.png?raw=true "Secretary")
 
-![Secretary](splash.jpg?raw=true "Secretary")
-# PARALEGAL EDITION
 
 **Transform your property management workflows with Secretary, an intelligent system designed to automate email handling, streamline tenant communication, and integrate seamlessly with your operations.**
 Secretary leverages advanced AI (Langchain & Large Language Models) to read, understand, categorize, and respond to emails from tenants, prospects, and other contacts. It's built to save property managers valuable time, reduce manual effort, and improve response consistency. This system is ideal for property management software companies looking to embed cutting-edge AI capabilities into their platforms.
+
 ![Secretary](demo.gif?raw=true "Demo")
-![Dashboard](Dashboard.jpg?raw=true "Dashboar")
 
-
-## Why Secretary for Property Management Software?
 
 * **Automated Triage & Categorization:** Secretary intelligently categorizes incoming emails into key property management areas:
     * **Maintenance Requests:** Identifies issues, urgency, and relevant details.
@@ -33,8 +30,9 @@ Secretary leverages advanced AI (Langchain & Large Language Models) to read, und
 * **Powered by Langchain & LLMs:** Utilizes the flexibility of Langchain and the power of models like Deepseek (or your preferred LLM) for sophisticated natural language understanding and generation.
 * **Customizable & Extensible:** Built with Python, Flask, and Langchain, making it adaptable to your specific needs and integration points.
 
-## Core Features for Property Management
+![Dashboard](Dashboard.jpg?raw=true "Dashboar")
 
+## Core Features for Property Management
 * **Automated Email Processing:** Connects to an IMAP inbox to fetch and process new emails.
 * **Tenant Recognition:** Attempts to identify tenants based on sender email or information within the email body, cross-referencing with its database.
 * **Property Contextualization:** Links communications to specific properties and units.
@@ -47,30 +45,27 @@ Secretary leverages advanced AI (Langchain & Large Language Models) to read, und
 * **Professional Communication:** Ensures all tenant communications are polite, consistent, and informative.
 * **Human-in-the-Loop:** AI-generated responses can be reviewed and modified through the web interface, ensuring manager control.
 
-## System Flow (Property Management Focus)
 ![Secretary](splash-2.png?raw=true "Secretary")
 
+## System Flow (Property Management Focus)
 
 1.  **Email Ingestion:** Secretary connects to the designated IMAP email account.
-2.  **Tenant/Property Identification:** Attempts to match sender/content to known tenants and properties in its database.
-3.  **AI Categorization & Extraction:** The Langchain-powered agent analyzes the email to:
+![Secretary](step1.png?raw=true "Step 1")
+  **Tenant/Property Identification:** Attempts to match sender/content to known tenants and properties in its database.
+2.  **AI Categorization & Extraction:** The Langchain-powered agent analyzes the email to:
     * Determine the category (maintenance, rent, lease, etc.).
     * Extract key details (e.g., issue for maintenance, specific question).
     * Assess urgency.
-4.  **Action Generation:** Based on the category, Secretary initiates internal actions:
+3.  **Action Generation:** Based on the category, Secretary initiates internal actions:
     * **Maintenance:** Creates a ticket, logs details.
     * **Rent/Lease:** Prepares context for response.
     * **Emergency:** Highlights for immediate attention.
-5.  **AI Response Drafting:** A tailored, professional response is generated using LLMs, incorporating relevant tenant/property data and addressing the specific inquiry.
-6.  **Web UI Review:** The property manager can view the original email, Secretary's analysis, actions taken (e.g., ticket created), and the drafted response via the Flask web interface.
-7.  **Edit & Dispatch:** The manager can approve, edit, or discard the AI response, then send it or save it as a draft.
-8.  **Logging & Data Update:** All interactions and generated data (tickets, responses) are logged and stored.
-
-![Secretary](step1.png?raw=true "Step 1")
 ![Secretary](step2.png?raw=true "Step 2")
+4.  **AI Response Drafting:** A tailored, professional response is generated using LLMs, incorporating relevant tenant/property data and addressing the specific inquiry.
+5.  **Web UI Review:** The property manager can view the original email, Secretary's analysis, actions taken (e.g., ticket created), and the drafted response via the Flask web interface.  
+6.  **Edit & Dispatch:** The manager can approve, edit, or discard the AI response, then send it or save it as a draft.
+6.  **Logging & Data Update:** All interactions and generated data (tickets, responses) are logged and stored.
 ![Secretary](step3.png?raw=true "Step 3")
-
-
 
 ## Technical Stack
 
