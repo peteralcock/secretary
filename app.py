@@ -8,6 +8,12 @@ import os
 from datetime import datetime
 from collections import Counter, defaultdict
 
+# Import Celery OCR task
+try:
+    from celery_worker import ocr_pdf
+except ImportError:
+    ocr_pdf = None  # For local dev if celery_worker not available
+
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "devsecret")
 
@@ -73,7 +79,13 @@ def dashboard():
         # Simulate attachments
         e["attachments"] = []
         if any(word in subj for word in ["document", "attachment", "pdf", "serve", "motion", "order"]):
-            e["attachments"].append(f"{e['id']}_document.pdf")
+            filename = f"{e['id']}_document.pdf"
+            e["attachments"].append(filename)
+            # Enqueue OCR task for each legal PDF attachment (simulate path)
+            if e["is_legal_communication"] and ocr_pdf:
+                pdf_path = f"/app/attachments/{filename}"
+                # This will enqueue the OCR task in the background
+                ocr_pdf.delay(pdf_path)
         # Simulate categories using filtering agent (could be cached in DB in real app)
         if "category" not in e:
             if e["is_legal_communication"]:
