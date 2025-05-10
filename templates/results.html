@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-4">My Legal Document Results</h1>
+    <form method="get" class="mb-4 flex flex-wrap gap-2 items-end">
+        <input type="text" name="q" value="{{ q or '' }}" placeholder="Search content..." class="border rounded px-3 py-2">
+        <select name="type" class="border rounded px-3 py-2">
+            <option value="">All Types</option>
+            <option value="summary" {% if result_type=='summary' %}selected{% endif %}>Summary</option>
+            <option value="qa" {% if result_type=='qa' %}selected{% endif %}>Q&A</option>
+            <option value="analysis" {% if result_type=='analysis' %}selected{% endif %}>Analysis</option>
+        </select>
+        <input type="text" name="party" value="{{ party or '' }}" placeholder="Party (optional)" class="border rounded px-3 py-2">
+        <input type="text" name="doc_id" value="{{ doc_id or '' }}" placeholder="Document ID (optional)" class="border rounded px-3 py-2">
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Search</button>
+        <a href="/results/export/csv" class="ml-4 px-4 py-2 bg-green-600 text-white rounded">Export CSV</a>
+        <a href="/results/export/pdf" class="ml-2 px-4 py-2 bg-purple-600 text-white rounded">Export PDF</a>
+    </form>
+    <table class="min-w-full bg-white rounded shadow">
+        <thead>
+            <tr>
+                <th class="px-4 py-2">Type</th>
+                <th class="px-4 py-2">Document</th>
+                <th class="px-4 py-2">Party</th>
+                <th class="px-4 py-2">Question</th>
+                <th class="px-4 py-2">Content</th>
+                <th class="px-4 py-2">Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in results %}
+            <tr>
+                <td class="px-4 py-2">{{ r.result_type }}</td>
+                <td class="px-4 py-2"><a href="/document/{{ r.doc_id }}/results" class="text-blue-700 hover:underline">{{ r.doc_id }}</a></td>
+                <td class="px-4 py-2">{{ r.party or '' }}</td>
+                <td class="px-4 py-2">{{ r.question or '' }}</td>
+                <td class="px-4 py-2 text-xs">{{ r.content[:200] }}{% if r.content|length > 200 %}...{% endif %}</td>
+                <td class="px-4 py-2 text-xs">{{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="px-4 py-2 text-center text-gray-500">No results found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="mt-6">
+        <a href="/dashboard" class="text-blue-700 hover:underline">&larr; Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %} 

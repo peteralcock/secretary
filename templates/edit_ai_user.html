@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-4">Edit AI User</h1>
+    <form method="post" class="bg-white rounded shadow p-6 max-w-md">
+        <label class="block mb-2 font-semibold">Name</label>
+        <input type="text" name="name" value="{{ ai.name }}" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2 font-semibold">Description</label>
+        <input type="text" name="description" value="{{ ai.description or '' }}" class="w-full border rounded px-3 py-2 mb-4">
+        <label class="block mb-2 font-semibold">Personality Profile (Prompt)</label>
+        <textarea name="personality_profile" class="w-full border rounded px-3 py-2 mb-4" rows="3">{{ ai.personality_profile or '' }}</textarea>
+        <label class="block mb-2 font-semibold">Mode</label>
+        <select name="mode" class="w-full border rounded px-3 py-2 mb-4" required>
+            <option value="semi-automated" {% if ai.mode=='semi-automated' %}selected{% endif %}>Semi-automated (requires approval)</option>
+            <option value="full-auto" {% if ai.mode=='full-auto' %}selected{% endif %}>Full-auto (no approval)</option>
+        </select>
+        <label class="block mb-2 font-semibold">LLM Service</label>
+        <select name="llm_service_id" class="w-full border rounded px-3 py-2 mb-4">
+            <option value="">(Default)</option>
+            {% for s in llm_services %}
+            <option value="{{ s.id }}" {% if ai.llm_service_id==s.id %}selected{% endif %}>{{ s.name }} ({{ s.service_type }})</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Update</button>
+    </form>
+    <div class="mt-6">
+        <a href="/ai_users" class="text-blue-700 hover:underline">&larr; Back to AI Users</a>
+    </div>
+</div>
+{% endblock %} 

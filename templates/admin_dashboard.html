@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-3xl font-bold mb-6">Admin Dashboard</h1>
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-2">Users</h2>
+        <table class="min-w-full bg-white rounded shadow mb-4">
+            <thead><tr><th class="px-4 py-2">ID</th><th class="px-4 py-2">Username</th><th class="px-4 py-2">Email</th><th class="px-4 py-2">Admin</th></tr></thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td class="px-4 py-2">{{ u.id }}</td>
+                    <td class="px-4 py-2">{{ u.username }}</td>
+                    <td class="px-4 py-2">{{ u.email }}</td>
+                    <td class="px-4 py-2">{% if u.is_admin %}✔️{% else %}❌{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-2">AI Users (Co-workers)</h2>
+        <table class="min-w-full bg-white rounded shadow mb-4">
+            <thead><tr><th class="px-4 py-2">ID</th><th class="px-4 py-2">Name</th><th class="px-4 py-2">Owner</th><th class="px-4 py-2">LLM</th><th class="px-4 py-2">Mode</th><th class="px-4 py-2">Created</th></tr></thead>
+            <tbody>
+                {% for a in ai_users %}
+                <tr>
+                    <td class="px-4 py-2">{{ a.id }}</td>
+                    <td class="px-4 py-2">{{ a.name }}</td>
+                    <td class="px-4 py-2">{{ a.user.username }}</td>
+                    <td class="px-4 py-2">{{ a.llm_service.name if a.llm_service else '' }}</td>
+                    <td class="px-4 py-2">{{ a.mode }}</td>
+                    <td class="px-4 py-2 text-xs">{{ a.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold mb-2">LLM Services</h2>
+        <table class="min-w-full bg-white rounded shadow mb-4">
+            <thead><tr><th class="px-4 py-2">ID</th><th class="px-4 py-2">Name</th><th class="px-4 py-2">Type</th><th class="px-4 py-2">Owner</th></tr></thead>
+            <tbody>
+                {% for l in llm_services %}
+                <tr>
+                    <td class="px-4 py-2">{{ l.id }}</td>
+                    <td class="px-4 py-2">{{ l.name }}</td>
+                    <td class="px-4 py-2">{{ l.service_type }}</td>
+                    <td class="px-4 py-2">{{ l.user.username }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="mt-6">
+        <a href="/dashboard" class="text-blue-700 hover:underline">&larr; Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %} 

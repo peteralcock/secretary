@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-4">Edit Email Profile</h1>
+    <form method="post" class="bg-white rounded shadow p-6 max-w-md">
+        <label class="block mb-2 font-semibold">Name</label>
+        <input type="text" name="name" value="{{ profile.name }}" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2 font-semibold">Type</label>
+        <select name="type" class="w-full border rounded px-3 py-2 mb-4" required>
+            <option value="smtp" {% if profile.type=='smtp' %}selected{% endif %}>SMTP (Outbox)</option>
+            <option value="imap" {% if profile.type=='imap' %}selected{% endif %}>IMAP (Inbox)</option>
+        </select>
+        <label class="block mb-2 font-semibold">Host</label>
+        <input type="text" name="host" value="{{ profile.host }}" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2 font-semibold">Port</label>
+        <input type="number" name="port" value="{{ profile.port }}" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2 font-semibold">Username</label>
+        <input type="text" name="username" value="{{ profile.username }}" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2 font-semibold">Password</label>
+        <input type="password" name="password" value="{{ profile.password }}" class="w-full border rounded px-3 py-2 mb-4" required autocomplete="off">
+        <label class="block mb-2 font-semibold">Use SSL</label>
+        <input type="checkbox" name="use_ssl" {% if profile.use_ssl %}checked{% endif %} class="mb-4">
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Update</button>
+    </form>
+    <div class="mt-6">
+        <a href="/ai_users/{{ profile.ai_user_id }}/email_profiles" class="text-blue-700 hover:underline">&larr; Back to Email Profiles</a>
+    </div>
+</div>
+{% endblock %} 

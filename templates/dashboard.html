@@ -8,19 +8,51 @@
 <body class="bg-gradient-to-br from-gray-100 to-blue-200 min-h-screen">
     <!-- Navigation Menu -->
     <nav class="bg-white shadow-md fixed w-full z-10 top-0 left-0">
-        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="text-2xl font-bold text-blue-800">Secretary</div>
-            <div class="space-x-6">
-                <a href="/inbox" class="text-blue-700 hover:text-blue-900 font-semibold">Inbox</a>
-                <a href="/dashboard" class="text-blue-700 hover:text-blue-900 font-semibold">Dashboard</a>
-                <a href="/scoreboard" class="text-blue-700 hover:text-blue-900 font-semibold">Scoreboard</a>
-                <a href="/logout" class="text-blue-700 hover:text-blue-900 font-semibold">Logout</a>
+        <div class="container mx-auto px-4 py-2 flex justify-between items-center">
+            <div class="flex items-center gap-6">
+                <a href="/dashboard" class="font-bold text-xl text-blue-700">Paralegal Dashboard</a>
+                <a href="/inbox" class="text-gray-700 hover:text-blue-700">Inbox</a>
+                <a href="/results" class="text-gray-700 hover:text-blue-700">Results</a>
+                <a href="/scoreboard" class="text-gray-700 hover:text-blue-700">Scoreboard</a>
+            </div>
+            <div>
+                <a href="/settings" class="text-gray-700 hover:text-blue-700 mr-4">Settings</a>
+                <a href="/logout" class="text-gray-700 hover:text-blue-700">Logout</a>
             </div>
         </div>
     </nav>
     <div class="pt-20"> <!-- Add padding to push content below nav -->
     <div class="container mx-auto py-8">
-        <h1 class="text-4xl font-bold text-center text-blue-800 mb-8">📊 Property Management Dashboard</h1>
+        <!-- Notifications Section -->
+        {% if notifications %}
+        <div class="mb-6">
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded shadow">
+                <div class="font-semibold text-yellow-800 mb-2">Notifications</div>
+                <ul>
+                    {% for n in notifications %}
+                    <li class="mb-1 text-sm">
+                        <span class="font-bold">[{{ n.result_type|capitalize }}]</span>
+                        {% if n.result_type == 'qa' %}Q: <span class="italic">{{ n.question }}</span> — {% endif %}
+                        {% if n.result_type == 'analysis' %}For <span class="italic">{{ n.party }}</span> — {% endif %}
+                        {{ n.content[:120] }}{% if n.content|length > 120 %}...{% endif %}
+                        <span class="text-gray-400 text-xs">({{ n.created_at.strftime('%Y-%m-%d %H:%M') }})</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+        <h1 class="text-4xl font-bold text-center text-blue-800 mb-8">📊 Legal Document Dashboard</h1>
+        <div class="flex justify-end mb-4 space-x-4">
+            <form method="get" action="/dashboard">
+                <input type="hidden" name="filter" value="mydocs">
+                <button type="submit" class="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 font-semibold">My Documents</button>
+            </form>
+            <form method="get" action="/dashboard">
+                <input type="hidden" name="filter" value="myevents">
+                <button type="submit" class="px-4 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 font-semibold">My Events</button>
+            </form>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div class="bg-white rounded-xl shadow-lg p-6 text-center">
                 <div class="text-2xl font-bold text-blue-700">{{ emails|length }}</div>
@@ -28,7 +60,7 @@
             </div>
             <div class="bg-white rounded-xl shadow-lg p-6 text-center">
                 <div class="text-2xl font-bold text-purple-700">{{ category_counts.values()|sum }}</div>
-                <div class="text-gray-600">Total Issues</div>
+                <div class="text-gray-600">Total Legal Docs</div>
             </div>
             <div class="bg-white rounded-xl shadow-lg p-6 text-center">
                 <div class="text-2xl font-bold text-green-700">{{ emails|selectattr('replied')|select|list|length }}</div>
@@ -61,7 +93,7 @@
                 </ul>
             </div>
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Issue Counts</h2>
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Legal Document Types</h2>
                 <ul>
                     {% for cat, count in category_counts.items() %}
                     <li class="mb-1 flex justify-between">
@@ -94,7 +126,7 @@
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Top Issues</h2>
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Top Legal Issues</h2>
                 <ul>
                     {% for issue, count in top_issues %}
                     <li class="mb-1 flex justify-between">
@@ -106,7 +138,7 @@
                 <canvas id="topIssuesChart" class="mt-4"></canvas>
             </div>
             <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Top Categories</h2>
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Top Document Types</h2>
                 <ul>
                     {% for cat, count in top_categories %}
                     <li class="mb-1 flex justify-between">
@@ -117,8 +149,118 @@
                 </ul>
             </div>
         </div>
+        <div class="mb-6 flex flex-col items-end">
+            <div class="bg-blue-50 text-blue-900 px-4 py-2 rounded shadow mb-2">
+                <span class="font-semibold">Your Stats:</span>
+                <span class="ml-2">Documents: <span class="font-bold">{{ user_doc_count }}</span></span>
+                <span class="ml-2">Events: <span class="font-bold">{{ user_event_count }}</span></span>
+            </div>
+        </div>
     </div>
     </div> <!-- End main content wrapper -->
+    <div class="container mx-auto py-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Recent Legal Documents{% if request.args.get('filter') == 'mydocs' %} (Mine){% endif %}</h2>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Case #</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Court</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Parties</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Excerpt</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for doc in recent_legal_docs %}
+                        <tr>
+                            <td class="px-4 py-2">{{ doc.document_type }}</td>
+                            <td class="px-4 py-2">{{ doc.case_number }}</td>
+                            <td class="px-4 py-2">{{ doc.court }}</td>
+                            <td class="px-4 py-2">{{ doc.parties|join(', ') }}</td>
+                            <td class="px-4 py-2 text-xs text-gray-600">{{ doc.raw_excerpt }}</td>
+                            <td class="px-4 py-2">
+                                <a href="/document/{{ doc.case_number }}/results" class="px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200">View Results</a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="6" class="px-4 py-2 bg-gray-50">
+                                <form method="post" action="/summarize/{{ doc.case_number }}" class="inline">
+                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2">
+                                        <option value="">Default AI</option>
+                                        {% for ai in ai_users %}
+                                        <option value="{{ ai.id }}">{{ ai.name }} ({{ ai.mode }})</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Summarize</button>
+                                </form>
+                                <form method="post" action="/ask/{{ doc.case_number }}" class="inline ml-2">
+                                    <input type="text" name="question" placeholder="Ask a question..." class="px-1 py-0.5 border rounded text-xs" required>
+                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2">
+                                        <option value="">Default AI</option>
+                                        {% for ai in ai_users %}
+                                        <option value="{{ ai.id }}">{{ ai.name }} ({{ ai.mode }})</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">Ask</button>
+                                </form>
+                                <form method="post" action="/analyze/{{ doc.case_number }}" class="inline ml-2">
+                                    <input type="hidden" name="party" value="defendant">
+                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2">
+                                        <option value="">Default AI</option>
+                                        {% for ai in ai_users %}
+                                        <option value="{{ ai.id }}">{{ ai.name }} ({{ ai.mode }})</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700">Analyze for Defendant</button>
+                                </form>
+                                <form method="post" action="/analyze/{{ doc.case_number }}" class="inline ml-2">
+                                    <input type="hidden" name="party" value="plaintiff">
+                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2">
+                                        <option value="">Default AI</option>
+                                        {% for ai in ai_users %}
+                                        <option value="{{ ai.id }}">{{ ai.name }} ({{ ai.mode }})</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="px-2 py-1 bg-pink-600 text-white rounded hover:bg-pink-700">Analyze for Plaintiff</button>
+                                </form>
+                                <!-- Result placeholder -->
+                                <div id="result-{{ doc.case_number }}" class="mt-2 text-sm text-gray-700"></div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="px-4 py-2 text-gray-400">No legal documents processed yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Upcoming Legal Events{% if request.args.get('filter') == 'myevents' %} (Mine){% endif %}</h2>
+                <ul>
+                    {% for event in upcoming_events %}
+                    <li class="mb-2 border-b pb-2">
+                        <span class="font-bold text-blue-800">{{ event.date }}</span>
+                        <span class="ml-2">Case: <span class="font-semibold">{{ event.case_number }}</span></span>
+                        <span class="ml-2">Type: <span class="font-semibold">{{ event.document_type }}</span></span>
+                        <span class="ml-2">Court: <span class="font-semibold">{{ event.court }}</span></span>
+                        {% set safe_case = event.case_number.replace('/', '_').replace(' ', '_') %}
+                        {% set safe_doc = event.document_type.replace(' ', '_') %}
+                        {% set safe_dt = event.date.replace(':', '').replace('-', '').replace('T', '_') %}
+                        {% set ics_filename = safe_case ~ '_' ~ safe_doc ~ '_' ~ safe_dt ~ '.ics' %}
+                        <a href="/ics/{{ ics_filename }}" class="ml-2 text-green-700 hover:underline" title="Download ICS">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="inline h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            Add to Calendar
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="text-gray-400">No upcoming events found.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
     <script>
         // Data for charts (injected by Jinja)
         const byDay = {{ by_day|tojson }};
@@ -129,7 +271,7 @@
         new Chart(document.getElementById('summaryChart'), {
             type: 'doughnut',
             data: {
-                labels: ['Total Emails', 'Total Issues', 'Total Drafted/Replies'],
+                labels: ['Total Emails', 'Total Legal Docs', 'Total Drafted/Replies'],
                 datasets: [{
                     data: [
                         {{ emails|length }},
@@ -156,7 +298,7 @@
             data: {
                 labels: Object.keys(byDay),
                 datasets: [{
-                    label: 'Issues',
+                    label: 'Legal Docs',
                     data: Object.values(byDay),
                     backgroundColor: 'rgba(59, 130, 246, 0.6)'
                 }]
@@ -169,7 +311,7 @@
             data: {
                 labels: Object.keys(byWeek),
                 datasets: [{
-                    label: 'Issues',
+                    label: 'Legal Docs',
                     data: Object.values(byWeek),
                     backgroundColor: 'rgba(16, 185, 129, 0.6)'
                 }]
@@ -182,7 +324,7 @@
             data: {
                 labels: Object.keys(byMonth),
                 datasets: [{
-                    label: 'Issues',
+                    label: 'Legal Docs',
                     data: Object.values(byMonth),
                     backgroundColor: 'rgba(168, 85, 247, 0.6)'
                 }]
@@ -225,6 +367,74 @@
             },
             options: {responsive: true, plugins: {legend: {display: false}}}
         });
+
+        // AJAX for document actions
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('form[action^="/summarize/"]').forEach(function(form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const docId = form.action.split('/').pop();
+                    fetch(form.action, {method: 'POST'})
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.task_id) pollTask(docId, data.task_id);
+                        });
+                });
+            });
+            document.querySelectorAll('form[action^="/ask/"]').forEach(function(form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const docId = form.action.split('/').pop();
+                    const formData = new FormData(form);
+                    fetch(form.action, {method: 'POST', body: formData})
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.task_id) pollTask(docId, data.task_id);
+                        });
+                });
+            });
+            document.querySelectorAll('form[action^="/analyze/"]').forEach(function(form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const docId = form.action.split('/').pop();
+                    const formData = new FormData(form);
+                    fetch(form.action, {method: 'POST', body: formData})
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.task_id) pollTask(docId, data.task_id);
+                        });
+                });
+            });
+        });
+        function pollTask(docId, taskId) {
+            const resultDiv = document.getElementById('result-' + docId);
+            resultDiv.innerHTML = 'Processing...';
+            let tries = 0;
+            function check() {
+                fetch('/task_status/' + taskId)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status === 'SUCCESS' && data.result) {
+                            let html = '';
+                            if (data.result.result_type === 'summary') {
+                                html = '<b>Summary:</b> ' + data.result.content;
+                            } else if (data.result.result_type === 'qa') {
+                                html = '<b>Q:</b> ' + (data.result.question || '') + '<br><b>A:</b> ' + data.result.content;
+                            } else if (data.result.result_type === 'analysis') {
+                                html = '<b>Analysis for ' + data.result.party + ':</b> ' + data.result.content;
+                            }
+                            resultDiv.innerHTML = html;
+                        } else if (data.status === 'FAILURE') {
+                            resultDiv.innerHTML = 'Task failed.';
+                        } else {
+                            tries++;
+                            if (tries < 30) setTimeout(check, 2000);
+                            else resultDiv.innerHTML = 'Still processing. Please refresh later.';
+                        }
+                    });
+            }
+            check();
+        }
     </script>
 </body>
 </html> 

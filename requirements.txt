@@ -12,3 +12,8 @@ google-generativeai
 pytest
 psycopg2-binary
 selenium
+celery
+ocrmypdf
+ics
+flask-login
+flask-sqlalchemy

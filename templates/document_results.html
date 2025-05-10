@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-4">Results for Document {{ doc_id }}</h1>
+    <table class="min-w-full bg-white rounded shadow">
+        <thead>
+            <tr>
+                <th class="px-4 py-2">Type</th>
+                <th class="px-4 py-2">Party</th>
+                <th class="px-4 py-2">Question</th>
+                <th class="px-4 py-2">Content</th>
+                <th class="px-4 py-2">Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in results %}
+            <tr>
+                <td class="px-4 py-2">{{ r.result_type }}</td>
+                <td class="px-4 py-2">{{ r.party or '' }}</td>
+                <td class="px-4 py-2">{{ r.question or '' }}</td>
+                <td class="px-4 py-2 text-xs">{{ r.content }}</td>
+                <td class="px-4 py-2 text-xs">{{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" class="px-4 py-2 text-center text-gray-500">No results for this document.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="mt-6">
+        <a href="/results?doc_id={{ doc_id }}" class="text-blue-700 hover:underline">&larr; Back to Results</a>
+    </div>
+</div>
+{% endblock %} 
