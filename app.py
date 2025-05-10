@@ -14,6 +14,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from celery.result import AsyncResult
 import csv
 from io import StringIO, BytesIO
+from functools import wraps
 try:
     from reportlab.lib.pagesizes import letter
     from reportlab.pdfgen import canvas
@@ -44,6 +45,8 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     gemini_api_key = db.Column(db.String(256), nullable=True)  # User's Gemini API key
+    is_admin = db.Column(db.Boolean, default=False)
+    # Relationships: llm_services, ai_users
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -62,6 +65,40 @@ class LegalDocumentResult(db.Model):
     party = db.Column(db.String(32), nullable=True)
 
     user = db.relationship('User', backref=db.backref('legal_results', lazy=True))
+
+class LLMService(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(80), nullable=False)
+    service_type = db.Column(db.String(32), nullable=False)  # e.g. 'gemini', 'openai', 'anthropic'
+    api_key = db.Column(db.String(256), nullable=False)
+    user = db.relationship('User', backref=db.backref('llm_services', lazy=True))
+
+class AIUser(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(80), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    personality_profile = db.Column(db.Text, nullable=True)
+    mode = db.Column(db.String(16), nullable=False, default='semi-automated')  # 'full-auto' or 'semi-automated'
+    llm_service_id = db.Column(db.Integer, db.ForeignKey('llm_service.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref=db.backref('ai_users', lazy=True))
+    llm_service = db.relationship('LLMService', backref=db.backref('ai_users', lazy=True))
+
+class SMTPIMAPProfile(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    ai_user_id = db.Column(db.Integer, db.ForeignKey('ai_user.id'), nullable=False)
+    name = db.Column(db.String(80), nullable=False)
+    type = db.Column(db.String(8), nullable=False)  # 'smtp' or 'imap'
+    host = db.Column(db.String(128), nullable=False)
+    port = db.Column(db.Integer, nullable=False)
+    username = db.Column(db.String(128), nullable=False)
+    password = db.Column(db.String(256), nullable=False)
+    use_ssl = db.Column(db.Boolean, default=True)
+    ai_user = db.relationship('AIUser', backref=db.backref('email_profiles', lazy=True))
+    user = db.relationship('User', backref=db.backref('email_profiles', lazy=True))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -254,6 +291,8 @@ def dashboard():
     user_event_count = sum(1 for e in upcoming_events if e.get('user_id') == user_id)
     # Notifications: last 10 results for this user
     notifications = LegalDocumentResult.query.filter_by(user_id=user_id).order_by(LegalDocumentResult.created_at.desc()).limit(10).all() if user_id else []
+    # AI users for this user
+    ai_users = AIUser.query.filter_by(user_id=current_user.id).all()
     return render_template(
         "dashboard.html",
         unaddressed=unaddressed,
@@ -271,7 +310,8 @@ def dashboard():
         current_user=current_user,
         user_doc_count=user_doc_count,
         user_event_count=user_event_count,
-        notifications=notifications
+        notifications=notifications,
+        ai_users=ai_users
     )
 
 @app.route("/inbox")
@@ -319,7 +359,9 @@ def summarize_doc(doc_id):
     if not txt_path:
         return {"error": "Document text not found."}, 404
     user_id = current_user.get_id()
-    task = summarize_legal_document.delay(txt_path, user_id=user_id, doc_id=doc_id)
+    ai_user_id = request.form.get('ai_user_id')
+    ai_user = AIUser.query.filter_by(id=ai_user_id, user_id=user_id).first() if ai_user_id else None
+    task = summarize_legal_document.delay(txt_path, user_id=user_id, doc_id=doc_id, ai_user_id=ai_user.id if ai_user else None)
     return {"status": "Summarization started", "task_id": task.id}
 
 @app.route('/ask/<doc_id>', methods=['POST'])
@@ -334,7 +376,9 @@ def ask_doc(doc_id):
     if not question:
         return {"error": "No question provided."}, 400
     user_id = current_user.get_id()
-    task = qa_legal_document.delay(txt_path, question, user_id=user_id, doc_id=doc_id)
+    ai_user_id = request.form.get('ai_user_id')
+    ai_user = AIUser.query.filter_by(id=ai_user_id, user_id=user_id).first() if ai_user_id else None
+    task = qa_legal_document.delay(txt_path, question, user_id=user_id, doc_id=doc_id, ai_user_id=ai_user.id if ai_user else None)
     return {"status": "QA started", "task_id": task.id}
 
 @app.route('/analyze/<doc_id>', methods=['POST'])
@@ -349,7 +393,9 @@ def analyze_doc(doc_id):
     if party not in ['defendant', 'plaintiff']:
         return {"error": "Party must be 'defendant' or 'plaintiff'."}, 400
     user_id = current_user.get_id()
-    task = analyze_for_party.delay(txt_path, party, user_id=user_id, doc_id=doc_id)
+    ai_user_id = request.form.get('ai_user_id')
+    ai_user = AIUser.query.filter_by(id=ai_user_id, user_id=user_id).first() if ai_user_id else None
+    task = analyze_for_party.delay(txt_path, party, user_id=user_id, doc_id=doc_id, ai_user_id=ai_user.id if ai_user else None)
     return {"status": f"Analysis for {party} started", "task_id": task.id}
 
 from celery.result import AsyncResult
@@ -445,6 +491,199 @@ def export_results_pdf():
 def document_results(doc_id):
     results = LegalDocumentResult.query.filter_by(user_id=current_user.id, doc_id=doc_id).order_by(LegalDocumentResult.created_at.desc()).all()
     return render_template('document_results.html', doc_id=doc_id, results=results)
+
+# Admin-only decorator
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not getattr(current_user, 'is_admin', False):
+            flash('Admin access required.')
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/admin')
+@login_required
+@admin_required
+def admin_dashboard():
+    users = User.query.all()
+    ai_users = AIUser.query.all()
+    llm_services = LLMService.query.all()
+    return render_template('admin_dashboard.html', users=users, ai_users=ai_users, llm_services=llm_services)
+
+@app.route('/llm_services', methods=['GET', 'POST'])
+@login_required
+def llm_services():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        service_type = request.form.get('service_type')
+        api_key = request.form.get('api_key')
+        if not name or not service_type or not api_key:
+            flash('All fields are required.')
+        else:
+            llm = LLMService(user_id=current_user.id, name=name, service_type=service_type, api_key=api_key)
+            db.session.add(llm)
+            db.session.commit()
+            flash('LLM service added.')
+        return redirect(url_for('llm_services'))
+    services = LLMService.query.filter_by(user_id=current_user.id).all()
+    return render_template('llm_services.html', services=services)
+
+@app.route('/llm_services/<int:llm_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_llm_service(llm_id):
+    llm = LLMService.query.get_or_404(llm_id)
+    if llm.user_id != current_user.id:
+        flash('Not authorized.')
+        return redirect(url_for('llm_services'))
+    if request.method == 'POST':
+        llm.name = request.form.get('name')
+        llm.service_type = request.form.get('service_type')
+        llm.api_key = request.form.get('api_key')
+        db.session.commit()
+        flash('LLM service updated.')
+        return redirect(url_for('llm_services'))
+    return render_template('edit_llm_service.html', llm=llm)
+
+@app.route('/llm_services/<int:llm_id>/delete', methods=['POST'])
+@login_required
+def delete_llm_service(llm_id):
+    llm = LLMService.query.get_or_404(llm_id)
+    if llm.user_id != current_user.id:
+        flash('Not authorized.')
+        return redirect(url_for('llm_services'))
+    db.session.delete(llm)
+    db.session.commit()
+    flash('LLM service deleted.')
+    return redirect(url_for('llm_services'))
+
+@app.route('/ai_users', methods=['GET', 'POST'])
+@login_required
+def ai_users():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        description = request.form.get('description')
+        personality_profile = request.form.get('personality_profile')
+        mode = request.form.get('mode')
+        llm_service_id = request.form.get('llm_service_id')
+        if not name or not mode:
+            flash('Name and mode are required.')
+        else:
+            ai = AIUser(
+                user_id=current_user.id,
+                name=name,
+                description=description,
+                personality_profile=personality_profile,
+                mode=mode,
+                llm_service_id=llm_service_id if llm_service_id else None
+            )
+            db.session.add(ai)
+            db.session.commit()
+            flash('AI user added.')
+        return redirect(url_for('ai_users'))
+    ai_users = AIUser.query.filter_by(user_id=current_user.id).all()
+    llm_services = LLMService.query.filter_by(user_id=current_user.id).all()
+    return render_template('ai_users.html', ai_users=ai_users, llm_services=llm_services)
+
+@app.route('/ai_users/<int:ai_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_ai_user(ai_id):
+    ai = AIUser.query.get_or_404(ai_id)
+    if ai.user_id != current_user.id:
+        flash('Not authorized.')
+        return redirect(url_for('ai_users'))
+    llm_services = LLMService.query.filter_by(user_id=current_user.id).all()
+    if request.method == 'POST':
+        ai.name = request.form.get('name')
+        ai.description = request.form.get('description')
+        ai.personality_profile = request.form.get('personality_profile')
+        ai.mode = request.form.get('mode')
+        ai.llm_service_id = request.form.get('llm_service_id') or None
+        db.session.commit()
+        flash('AI user updated.')
+        return redirect(url_for('ai_users'))
+    return render_template('edit_ai_user.html', ai=ai, llm_services=llm_services)
+
+@app.route('/ai_users/<int:ai_id>/delete', methods=['POST'])
+@login_required
+def delete_ai_user(ai_id):
+    ai = AIUser.query.get_or_404(ai_id)
+    if ai.user_id != current_user.id:
+        flash('Not authorized.')
+        return redirect(url_for('ai_users'))
+    db.session.delete(ai)
+    db.session.commit()
+    flash('AI user deleted.')
+    return redirect(url_for('ai_users'))
+
+@app.route('/ai_users/<int:ai_id>/email_profiles', methods=['GET', 'POST'])
+@login_required
+def email_profiles(ai_id):
+    ai = AIUser.query.get_or_404(ai_id)
+    if ai.user_id != current_user.id:
+        flash('Not authorized.')
+        return redirect(url_for('ai_users'))
+    if request.method == 'POST':
+        name = request.form.get('name')
+        type_ = request.form.get('type')
+        host = request.form.get('host')
+        port = request.form.get('port')
+        username = request.form.get('username')
+        password = request.form.get('password')
+        use_ssl = bool(request.form.get('use_ssl'))
+        if not name or not type_ or not host or not port or not username or not password:
+            flash('All fields are required.')
+        else:
+            profile = SMTPIMAPProfile(
+                user_id=current_user.id,
+                ai_user_id=ai.id,
+                name=name,
+                type=type_,
+                host=host,
+                port=int(port),
+                username=username,
+                password=password,
+                use_ssl=use_ssl
+            )
+            db.session.add(profile)
+            db.session.commit()
+            flash('Email profile added.')
+        return redirect(url_for('email_profiles', ai_id=ai.id))
+    profiles = SMTPIMAPProfile.query.filter_by(ai_user_id=ai.id).all()
+    return render_template('email_profiles.html', ai=ai, profiles=profiles)
+
+@app.route('/email_profiles/<int:profile_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_email_profile(profile_id):
+    profile = SMTPIMAPProfile.query.get_or_404(profile_id)
+    if profile.user_id != current_user.id:
+        flash('Not authorized.')
+        return redirect(url_for('ai_users'))
+    if request.method == 'POST':
+        profile.name = request.form.get('name')
+        profile.type = request.form.get('type')
+        profile.host = request.form.get('host')
+        profile.port = int(request.form.get('port'))
+        profile.username = request.form.get('username')
+        profile.password = request.form.get('password')
+        profile.use_ssl = bool(request.form.get('use_ssl'))
+        db.session.commit()
+        flash('Email profile updated.')
+        return redirect(url_for('email_profiles', ai_id=profile.ai_user_id))
+    return render_template('edit_email_profile.html', profile=profile)
+
+@app.route('/email_profiles/<int:profile_id>/delete', methods=['POST'])
+@login_required
+def delete_email_profile(profile_id):
+    profile = SMTPIMAPProfile.query.get_or_404(profile_id)
+    if profile.user_id != current_user.id:
+        flash('Not authorized.')
+        return redirect(url_for('ai_users'))
+    ai_id = profile.ai_user_id
+    db.session.delete(profile)
+    db.session.commit()
+    flash('Email profile deleted.')
+    return redirect(url_for('email_profiles', ai_id=ai_id))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True) 

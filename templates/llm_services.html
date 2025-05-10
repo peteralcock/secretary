@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-4">My LLM Services</h1>
+    <table class="min-w-full bg-white rounded shadow mb-6">
+        <thead><tr><th class="px-4 py-2">Name</th><th class="px-4 py-2">Type</th><th class="px-4 py-2">Actions</th></tr></thead>
+        <tbody>
+            {% for s in services %}
+            <tr>
+                <td class="px-4 py-2">{{ s.name }}</td>
+                <td class="px-4 py-2">{{ s.service_type }}</td>
+                <td class="px-4 py-2">
+                    <a href="/llm_services/{{ s.id }}/edit" class="text-blue-700 hover:underline mr-2">Edit</a>
+                    <form method="post" action="/llm_services/{{ s.id }}/delete" style="display:inline;" onsubmit="return confirm('Delete this LLM service?');">
+                        <button type="submit" class="text-red-600 hover:underline">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="3" class="px-4 py-2 text-center text-gray-500">No LLM services added yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <h2 class="text-xl font-semibold mb-2">Add New LLM Service</h2>
+    <form method="post" class="bg-white rounded shadow p-6 max-w-md">
+        <label class="block mb-2 font-semibold">Name</label>
+        <input type="text" name="name" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2 font-semibold">Type</label>
+        <select name="service_type" class="w-full border rounded px-3 py-2 mb-4" required>
+            <option value="">Select...</option>
+            <option value="gemini">Gemini</option>
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+        </select>
+        <label class="block mb-2 font-semibold">API Key</label>
+        <input type="password" name="api_key" class="w-full border rounded px-3 py-2 mb-4" required autocomplete="off">
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Add Service</button>
+    </form>
+    <div class="mt-6">
+        <a href="/settings" class="text-blue-700 hover:underline">&larr; Back to Settings</a>
+    </div>
+</div>
+{% endblock %} 

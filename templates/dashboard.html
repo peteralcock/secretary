@@ -188,19 +188,43 @@
                         <tr>
                             <td colspan="6" class="px-4 py-2 bg-gray-50">
                                 <form method="post" action="/summarize/{{ doc.case_number }}" class="inline">
+                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2">
+                                        <option value="">Default AI</option>
+                                        {% for ai in ai_users %}
+                                        <option value="{{ ai.id }}">{{ ai.name }} ({{ ai.mode }})</option>
+                                        {% endfor %}
+                                    </select>
                                     <button type="submit" class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Summarize</button>
                                 </form>
                                 <form method="post" action="/ask/{{ doc.case_number }}" class="inline ml-2">
                                     <input type="text" name="question" placeholder="Ask a question..." class="px-1 py-0.5 border rounded text-xs" required>
-                                    <button type="submit" class="px-2 py-1 bg-green-200 text-green-900 rounded hover:bg-green-300 text-xs">Ask</button>
+                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2">
+                                        <option value="">Default AI</option>
+                                        {% for ai in ai_users %}
+                                        <option value="{{ ai.id }}">{{ ai.name }} ({{ ai.mode }})</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">Ask</button>
                                 </form>
                                 <form method="post" action="/analyze/{{ doc.case_number }}" class="inline ml-2">
                                     <input type="hidden" name="party" value="defendant">
-                                    <button type="submit" class="px-2 py-1 bg-purple-200 text-purple-900 rounded hover:bg-purple-300 text-xs">Analyze for Defendant</button>
+                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2">
+                                        <option value="">Default AI</option>
+                                        {% for ai in ai_users %}
+                                        <option value="{{ ai.id }}">{{ ai.name }} ({{ ai.mode }})</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700">Analyze for Defendant</button>
                                 </form>
                                 <form method="post" action="/analyze/{{ doc.case_number }}" class="inline ml-2">
                                     <input type="hidden" name="party" value="plaintiff">
-                                    <button type="submit" class="px-2 py-1 bg-pink-200 text-pink-900 rounded hover:bg-pink-300 text-xs">Analyze for Plaintiff</button>
+                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2">
+                                        <option value="">Default AI</option>
+                                        {% for ai in ai_users %}
+                                        <option value="{{ ai.id }}">{{ ai.name }} ({{ ai.mode }})</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="px-2 py-1 bg-pink-600 text-white rounded hover:bg-pink-700">Analyze for Plaintiff</button>
                                 </form>
                                 <!-- Result placeholder -->
                                 <div id="result-{{ doc.case_number }}" class="mt-2 text-sm text-gray-700"></div>

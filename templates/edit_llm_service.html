@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-2xl font-bold mb-4">Edit LLM Service</h1>
+    <form method="post" class="bg-white rounded shadow p-6 max-w-md">
+        <label class="block mb-2 font-semibold">Name</label>
+        <input type="text" name="name" value="{{ llm.name }}" class="w-full border rounded px-3 py-2 mb-4" required>
+        <label class="block mb-2 font-semibold">Type</label>
+        <select name="service_type" class="w-full border rounded px-3 py-2 mb-4" required>
+            <option value="gemini" {% if llm.service_type=='gemini' %}selected{% endif %}>Gemini</option>
+            <option value="openai" {% if llm.service_type=='openai' %}selected{% endif %}>OpenAI</option>
+            <option value="anthropic" {% if llm.service_type=='anthropic' %}selected{% endif %}>Anthropic</option>
+        </select>
+        <label class="block mb-2 font-semibold">API Key</label>
+        <input type="password" name="api_key" value="{{ llm.api_key }}" class="w-full border rounded px-3 py-2 mb-4" required autocomplete="off">
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Update</button>
+    </form>
+    <div class="mt-6">
+        <a href="/llm_services" class="text-blue-700 hover:underline">&larr; Back to LLM Services</a>
+    </div>
+</div>
+{% endblock %} 
