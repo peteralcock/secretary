@@ -15,3 +15,5 @@ selenium
 celery
 ocrmypdf
 ics
+flask-login
+flask-sqlalchemy
