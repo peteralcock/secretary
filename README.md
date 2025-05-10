@@ -1,3 +1,4 @@
+![Secretary](logo-title.jpg?raw=true "Secretary")
 ![Secretary](demo.gif?raw=true "Demo")
 
 **Transform your property management workflows with Secretary, an intelligent system designed to automate email handling, streamline tenant communication, and integrate seamlessly with your operations.**
