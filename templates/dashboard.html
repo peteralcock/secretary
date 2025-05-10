@@ -119,6 +119,52 @@
         </div>
     </div>
     </div> <!-- End main content wrapper -->
+    <div class="container mx-auto py-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Recent Legal Documents</h2>
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Case #</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Court</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Parties</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Excerpt</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for doc in recent_legal_docs %}
+                        <tr>
+                            <td class="px-4 py-2">{{ doc.document_type }}</td>
+                            <td class="px-4 py-2">{{ doc.case_number }}</td>
+                            <td class="px-4 py-2">{{ doc.court }}</td>
+                            <td class="px-4 py-2">{{ doc.parties|join(', ') }}</td>
+                            <td class="px-4 py-2 text-xs text-gray-600">{{ doc.raw_excerpt }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="5" class="px-4 py-2 text-gray-400">No legal documents processed yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-blue-700">Upcoming Legal Events</h2>
+                <ul>
+                    {% for event in upcoming_events %}
+                    <li class="mb-2 border-b pb-2">
+                        <span class="font-bold text-blue-800">{{ event.date }}</span>
+                        <span class="ml-2">Case: <span class="font-semibold">{{ event.case_number }}</span></span>
+                        <span class="ml-2">Type: <span class="font-semibold">{{ event.document_type }}</span></span>
+                        <span class="ml-2">Court: <span class="font-semibold">{{ event.court }}</span></span>
+                    </li>
+                    {% else %}
+                    <li class="text-gray-400">No upcoming events found.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
     <script>
         // Data for charts (injected by Jinja)
         const byDay = {{ by_day|tojson }};

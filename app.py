@@ -7,6 +7,7 @@ from core.supervisor import supervisor_pm_workflow
 import os
 from datetime import datetime
 from collections import Counter, defaultdict
+import glob
 
 # Import Celery OCR task
 try:
@@ -123,6 +124,27 @@ def dashboard():
     top_issues = Counter(issue_summaries).most_common(5)
     # Top categories (sorted)
     top_categories = category_counts.most_common(5)
+    # Load LLM results (legal document analysis)
+    llm_results_dir = '/app/llm_results'
+    recent_legal_docs = []
+    upcoming_events = []
+    if os.path.exists(llm_results_dir):
+        for fpath in glob.glob(os.path.join(llm_results_dir, '*.json')):
+            try:
+                with open(fpath) as f:
+                    doc = json.load(f)
+                    recent_legal_docs.append(doc)
+                    for dt in doc.get('event_dates', []):
+                        upcoming_events.append({
+                            'date': dt,
+                            'case_number': doc.get('case_number'),
+                            'document_type': doc.get('document_type'),
+                            'court': doc.get('court')
+                        })
+            except Exception as e:
+                print(f"Error loading LLM result {fpath}: {e}")
+    # Sort events chronologically
+    upcoming_events.sort(key=lambda x: x['date'])
     return render_template(
         "dashboard.html",
         unaddressed=unaddressed,
@@ -134,7 +156,9 @@ def dashboard():
         emails=emails,
         num_drafts=num_drafts,
         top_issues=top_issues,
-        top_categories=category_counts.most_common(5)
+        top_categories=category_counts.most_common(5),
+        recent_legal_docs=recent_legal_docs,
+        upcoming_events=upcoming_events
     )
 
 @app.route("/inbox")
