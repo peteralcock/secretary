@@ -17,6 +17,7 @@ services:
     build: .
     depends_on:
       - db
+      - redis
     environment:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
@@ -30,6 +31,29 @@ services:
     volumes:
       - .:/app
     command: gunicorn app:app --bind 0.0.0.0:5000 --timeout 120
+
+  redis:
+    image: redis:7
+    restart: always
+    ports:
+      - "6379:6379"
+
+  celeryworker:
+    build: .
+    depends_on:
+      - db
+      - redis
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: secretary_pm
+      POSTGRES_USER: secretary
+      POSTGRES_PASSWORD: secretarypass
+      FLASK_SECRET_KEY: devsecret
+      EMAILS_PATH: /app/sample_emails.json
+    volumes:
+      - .:/app
+    command: celery -A celery_worker.celery_app worker --loglevel=info
 
 volumes:
   pgdata: 
