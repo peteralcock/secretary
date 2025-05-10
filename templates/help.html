@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mx-auto py-8">
+    <h1 class="text-3xl font-bold mb-4 text-blue-800">Help & FAQ</h1>
+    <div class="bg-white rounded shadow p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-2">Frequently Asked Questions</h2>
+        <ul class="list-disc pl-6 text-gray-700">
+            <li><b>What does "Summarize" do?</b> It generates a concise summary of a legal document using AI.</li>
+            <li><b>What is an AI User?</b> An AI User is a virtual legal assistant with a specific LLM and personality.</li>
+            <li><b>How do I share a document?</b> Use the "Share" button on the dashboard to share with teammates.</li>
+            <li><b>How do I sync events to my calendar?</b> Use the "Sync to Google Calendar" button (coming soon).</li>
+        </ul>
+    </div>
+    <div class="bg-white rounded shadow p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-2">Contact Support</h2>
+        <form method="post" action="/feedback">
+            <label class="block mb-2 font-semibold">Your Email</label>
+            <input type="email" name="email" class="w-full border rounded px-3 py-2 mb-4" required>
+            <label class="block mb-2 font-semibold">Your Question or Issue</label>
+            <textarea name="message" class="w-full border rounded px-3 py-2 mb-4" rows="4" required></textarea>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Send</button>
+        </form>
+    </div>
+    <div class="mt-4">
+        <a href="/dashboard" class="text-blue-700 hover:underline">&larr; Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %} 

@@ -16,6 +16,9 @@
                     <form method="post" action="/ai_users/{{ a.id }}/delete" style="display:inline;" onsubmit="return confirm('Delete this AI user?');">
                         <button type="submit" class="text-red-600 hover:underline">Delete</button>
                     </form>
+                    <form method="post" action="/ai_users/{{ a.id }}/monitor_inbox" style="display:inline;">
+                        <button type="submit" class="ml-2 px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-xs" title="Trigger inbox monitoring for this AI user (fetch new emails)">Monitor Inbox</button>
+                    </form>
                 </td>
             </tr>
             {% else %}

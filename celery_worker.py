@@ -250,4 +250,34 @@ def analyze_for_party(txt_path, party, user_id=None, doc_id=None):
         return analysis_path
     except Exception as e:
         print(f"Legal analysis for {party} failed for {txt_path}: {e}")
-        return None 
+        return None
+
+@celery_app.task
+def monitor_inbox_for_ai_user(ai_user_id, user_id=None):
+    """
+    Connects to the assigned IMAP inbox for the AI user, fetches new emails, and (future) processes them.
+    """
+    if not db:
+        print("DB not available in Celery worker.")
+        return
+    from app import AIUser, SMTPIMAPProfile
+    ai_user = AIUser.query.get(ai_user_id)
+    if not ai_user:
+        print(f"AIUser {ai_user_id} not found.")
+        return
+    # Find IMAP profile for this AI user
+    imap_profile = SMTPIMAPProfile.query.filter_by(ai_user_id=ai_user_id, type='imap').first()
+    if not imap_profile:
+        print(f"No IMAP profile for AIUser {ai_user_id}.")
+        return
+    import imaplib
+    try:
+        mail = imaplib.IMAP4_SSL(imap_profile.host, imap_profile.port)
+        mail.login(imap_profile.username, imap_profile.password)
+        mail.select("inbox")
+        status, messages = mail.search(None, "UNSEEN")
+        email_ids = messages[0].split()
+        print(f"AIUser {ai_user_id} found {len(email_ids)} new emails in inbox.")
+        mail.logout()
+    except Exception as e:
+        print(f"Failed to check inbox for AIUser {ai_user_id}: {e}") 
