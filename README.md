@@ -45,8 +45,6 @@ Secretary leverages advanced AI (Langchain & Large Language Models) to read, und
 * **Professional Communication:** Ensures all tenant communications are polite, consistent, and informative.
 * **Human-in-the-Loop:** AI-generated responses can be reviewed and modified through the web interface, ensuring manager control.
 
-![Secretary](splash-2.png?raw=true "Secretary")
-
 ## System Flow (Property Management Focus)
 
 1.  **Email Ingestion:** Secretary connects to the designated IMAP email account.
