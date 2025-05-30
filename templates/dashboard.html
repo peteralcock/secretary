@@ -23,22 +23,25 @@
     </nav>
     <div class="pt-20"> <!-- Add padding to push content below nav -->
     <div class="container mx-auto py-8">
-        <!-- Notifications Section -->
+        <!-- Notifications Section (unread only) -->
         {% if notifications %}
         <div class="mb-6">
-            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded shadow">
-                <div class="font-semibold text-yellow-800 mb-2">Notifications</div>
-                <ul>
-                    {% for n in notifications %}
-                    <li class="mb-1 text-sm">
-                        <span class="font-bold">[{{ n.result_type|capitalize }}]</span>
-                        {% if n.result_type == 'qa' %}Q: <span class="italic">{{ n.question }}</span> — {% endif %}
-                        {% if n.result_type == 'analysis' %}For <span class="italic">{{ n.party }}</span> — {% endif %}
-                        {{ n.content[:120] }}{% if n.content|length > 120 %}...{% endif %}
-                        <span class="text-gray-400 text-xs">({{ n.created_at.strftime('%Y-%m-%d %H:%M') }})</span>
-                    </li>
-                    {% endfor %}
-                </ul>
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded shadow flex items-center justify-between">
+                <div>
+                    <div class="font-semibold text-yellow-800 mb-2">Notifications</div>
+                    <ul>
+                        {% for n in notifications %}
+                        <li class="mb-1 text-sm">
+                            <span class="font-bold">[{{ n.type|capitalize }}]</span>
+                            {{ n.message }}
+                            <span class="text-gray-400 text-xs">({{ n.created_at.strftime('%Y-%m-%d %H:%M') }})</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <form method="post" action="/notifications/mark_all_read">
+                    <button type="submit" class="ml-4 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-xs">Mark all as read</button>
+                </form>
             </div>
         </div>
         {% endif %}
@@ -162,6 +165,24 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
             <div class="bg-white rounded-xl shadow-lg p-6">
                 <h2 class="text-2xl font-semibold mb-4 text-blue-700">Recent Legal Documents{% if request.args.get('filter') == 'mydocs' %} (Mine){% endif %}</h2>
+                <div class="flex items-center mb-2">
+                    <span class="text-gray-700 font-semibold mr-2">Recent Legal Documents</span>
+                    <span title="Actions: 
+- Summarize: Get a concise summary of the document.
+- Ask: Ask a legal question about the document.
+- Analyze: Get a legal analysis for defendant or plaintiff.
+- AI User: Choose which AI persona to use for the action." class="cursor-help text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 14v.01M12 10v.01M16 10h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
+                    </span>
+                </div>
+                <div class="flex justify-end mb-4">
+                    <form method="post" action="/sync_calendar">
+                        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold" title="Sync all your upcoming events to Google Calendar (stub)">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="inline h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            Sync to Google Calendar
+                        </button>
+                    </form>
+                </div>
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead>
                         <tr>
@@ -183,48 +204,52 @@
                             <td class="px-4 py-2 text-xs text-gray-600">{{ doc.raw_excerpt }}</td>
                             <td class="px-4 py-2">
                                 <a href="/document/{{ doc.case_number }}/results" class="px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200">View Results</a>
+                                <form method="post" action="/share_document/{{ doc.case_number }}" class="inline ml-2" style="display:inline-block;">
+                                    <input type="text" name="share_with" placeholder="Share with (username/email)" class="px-1 py-0.5 border rounded text-xs" required title="Enter teammate's username or email">
+                                    <button type="submit" class="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-xs" title="Share this document">Share</button>
+                                </form>
                             </td>
                         </tr>
                         <tr>
                             <td colspan="6" class="px-4 py-2 bg-gray-50">
-                                <form method="post" action="/summarize/{{ doc.case_number }}" class="inline">
-                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2">
+                                <form method="post" action="/summarize/{{ doc.case_number }}" class="inline" title="Summarize: Get a concise summary of this legal document using AI.">
+                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2" title="Choose which AI user/personality to use for this action.">
                                         <option value="">Default AI</option>
                                         {% for ai in ai_users %}
                                         <option value="{{ ai.id }}">{{ ai.name }} ({{ ai.mode }})</option>
                                         {% endfor %}
                                     </select>
-                                    <button type="submit" class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Summarize</button>
+                                    <button type="submit" class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700" title="Summarize this document with AI">Summarize</button>
                                 </form>
-                                <form method="post" action="/ask/{{ doc.case_number }}" class="inline ml-2">
-                                    <input type="text" name="question" placeholder="Ask a question..." class="px-1 py-0.5 border rounded text-xs" required>
-                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2">
+                                <form method="post" action="/ask/{{ doc.case_number }}" class="inline ml-2" title="Ask: Get an AI-generated answer to your legal question about this document.">
+                                    <input type="text" name="question" placeholder="Ask a question..." class="px-1 py-0.5 border rounded text-xs" required title="Type your legal question here">
+                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2" title="Choose which AI user/personality to use for this action.">
                                         <option value="">Default AI</option>
                                         {% for ai in ai_users %}
                                         <option value="{{ ai.id }}">{{ ai.name }} ({{ ai.mode }})</option>
                                         {% endfor %}
                                     </select>
-                                    <button type="submit" class="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700">Ask</button>
+                                    <button type="submit" class="px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700" title="Ask a legal question about this document">Ask</button>
                                 </form>
-                                <form method="post" action="/analyze/{{ doc.case_number }}" class="inline ml-2">
+                                <form method="post" action="/analyze/{{ doc.case_number }}" class="inline ml-2" title="Analyze: Get a legal analysis in support of the defendant.">
                                     <input type="hidden" name="party" value="defendant">
-                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2">
+                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2" title="Choose which AI user/personality to use for this action.">
                                         <option value="">Default AI</option>
                                         {% for ai in ai_users %}
                                         <option value="{{ ai.id }}">{{ ai.name }} ({{ ai.mode }})</option>
                                         {% endfor %}
                                     </select>
-                                    <button type="submit" class="px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700">Analyze for Defendant</button>
+                                    <button type="submit" class="px-2 py-1 bg-purple-600 text-white rounded hover:bg-purple-700" title="Analyze for Defendant">Analyze for Defendant</button>
                                 </form>
-                                <form method="post" action="/analyze/{{ doc.case_number }}" class="inline ml-2">
+                                <form method="post" action="/analyze/{{ doc.case_number }}" class="inline ml-2" title="Analyze: Get a legal analysis in support of the plaintiff.">
                                     <input type="hidden" name="party" value="plaintiff">
-                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2">
+                                    <select name="ai_user_id" class="border rounded px-2 py-1 text-xs mr-2" title="Choose which AI user/personality to use for this action.">
                                         <option value="">Default AI</option>
                                         {% for ai in ai_users %}
                                         <option value="{{ ai.id }}">{{ ai.name }} ({{ ai.mode }})</option>
                                         {% endfor %}
                                     </select>
-                                    <button type="submit" class="px-2 py-1 bg-pink-600 text-white rounded hover:bg-pink-700">Analyze for Plaintiff</button>
+                                    <button type="submit" class="px-2 py-1 bg-pink-600 text-white rounded hover:bg-pink-700" title="Analyze for Plaintiff">Analyze for Plaintiff</button>
                                 </form>
                                 <!-- Result placeholder -->
                                 <div id="result-{{ doc.case_number }}" class="mt-2 text-sm text-gray-700"></div>
@@ -261,6 +286,10 @@
             </div>
         </div>
     </div>
+    <!-- Add a floating help button -->
+    <a href="/help" title="Help & FAQ" class="fixed bottom-8 right-8 bg-blue-600 text-white rounded-full shadow-lg p-4 hover:bg-blue-700 z-50 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 14v.01M12 10v.01M16 10h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" /></svg>
+    </a>
     <script>
         // Data for charts (injected by Jinja)
         const byDay = {{ by_day|tojson }};

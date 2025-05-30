@@ -1,0 +1,29 @@
+{% load extras %}
+<div class="sidebar-section">
+    <h3><span>Share</span></h3>
+
+    <div id="share-links" class="form-inline">
+        <a href="mailto:?subject={{ title|urlencode }}%20at%20CourtListener.com&body={% get_full_host %}{{ request.path }}"
+           title="Email this Link to a Friend or Colleague">
+            <i class="fa fa-envelope-o fa-lg gray"></i>
+        </a>&nbsp;
+        <a href="https://www.facebook.com/share.php?u={% get_full_host %}{{ request.path }}&t={{ title }} at CourtListener.com"
+           target="_blank"
+           title="Share on Facebook">
+            <i class="fa fa-facebook-square fa-lg gray"></i>
+        </a>&nbsp;
+        <a href="https://x.com/home?status={% get_full_host %}{{ request.path }}"
+           target="_blank"
+           title="Share on X">
+            <i class="fa fa-twitter-square fa-lg gray"></i>
+        </a>&nbsp;
+
+        <div class="form-group">
+            <input type="text"
+                   readonly="readonly"
+                   id="copy-input"
+                   class="form-control input-sm form-inline click-select"
+                   value="{% get_full_host %}{{ request.path }}"/>
+        </div>
+    </div>
+</div>

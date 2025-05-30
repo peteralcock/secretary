@@ -1,0 +1,195 @@
+{% extends "profile/nav.html" %}
+
+{% block title %}Account Settings – CourtListener.com{% endblock %}
+
+{% block nav-account %}active{% endblock %}
+
+{% block content %}
+  {# Navigation Tabs #}
+  {% include "includes/account-tabs.html" %}
+
+    <div class="col-xs-12">
+        {% if user_form.errors or profile_form.errors %}
+            <div class="alert alert-danger">
+                <p class="bottom">There were errors with your submission.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="col-sm-3"></div>
+    <div class="col-xs-12 col-sm-6">
+        <form action="" method="post">{% csrf_token %}
+            <div class="row">
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label for="id_first_name">First Name*</label>
+                        {{ user_form.first_name }}
+                        {% if user_form.first_name.errors %}
+                            <p class="help-block">
+                                {% for error in user_form.first_name.errors %}
+                                    {{ error|escape }}
+                                {% endfor %}
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="form-group">
+                        <label for="id_last_name">Last Name*</label>
+                        {{ user_form.last_name }}
+                        {% if user_form.last_name.errors %}
+                            <p class="help-block">
+                                {% for error in user_form.last_name.errors %}
+                                    {{ error|escape }}
+                                {% endfor %}
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="form-group {% if EMAIL_BAN_REASON %} alert alert-danger {% endif %}">
+                <label for="id_email">Email (will log you out until re-confirmed)*</label>
+                {{ user_form.email }}
+                {% if EMAIL_BAN_REASON %}
+                    <p class="help-block">
+                        {{ EMAIL_BAN_REASON|safe }}
+                    </p>
+                {% endif %}
+                {% if user_form.email.errors %}
+                    <p class="help-block">
+                        {% for error in user_form.email.errors %}
+                            {{ error|escape }}
+                        {% endfor %}
+                    </p>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="id_employer">Employer</label>
+                {{ profile_form.employer }}
+                {% if profile_form.employer.errors %}
+                    <p class="help-block">
+                        {% for error in profile_form.employer.errors %}
+                            {{ error|escape }}
+                        {% endfor %}
+                    </p>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="id_barmembership">Bar Memberships (hold control to select more than one)</label>
+                {{ profile_form.barmembership }}
+                {% if profile_form.barmembership.errors %}
+                    <p class="help-block">
+                        {% for error in profile_form.barmembership.errors %}
+                            {{ error|escape }}
+                        {% endfor %}
+                    </p>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="id_address1">Mailing Address 1</label>
+                {{ profile_form.address1 }}
+                {% if profile_form.address1.errors %}
+                    <p class="help-block">
+                        {% for error in profile_form.address1.errors %}
+                            {{ error|escape }}
+                        {% endfor %}
+                    </p>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="id_address2">Mailing Address 2</label>
+                {{ profile_form.address2 }}
+                {% if profile_form.address1.errors %}
+                    <p class="help-block">
+                        {% for error in profile_form.address2.errors %}
+                            {{ error|escape }}
+                        {% endfor %}
+                    </p>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                <label for="id_city">City</label>
+                {{ profile_form.city }}
+                {% if profile_form.city.errors %}
+                    <p class="help-block">
+                        {% for error in profile_form.city.errors %}
+                            {{ error|escape }}
+                        {% endfor %}
+                    </p>
+                {% endif %}
+            </div>
+            <div class="row">
+                <div class="col-sm-7">
+                    <div class="form-group">
+                        <label for="id_state">State</label>
+                        {{ profile_form.state }}
+                        {% if profile_form.state.errors %}
+                            <span class="help-block">
+                                {% for error in profile_form.state.errors %}
+                                    {{ error|escape }}
+                                {% endfor %}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-sm-5">
+                    <div class="form-group">
+                        <label for="id_zip_code">Zip</label>
+                        {{ profile_form.zip_code }}
+                        {% if profile_form.zip_code.errors %}
+                            <p class="help-block">
+                                {% for error in profile_form.zip_code.errors %}
+                                    {{ error|escape }}
+                                {% endfor %}
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="id_plaintext_preferred">
+                    {{ profile_form.plaintext_preferred }}
+                    I prefer plain text emails</label>
+                {% if profile_form.plaintext_preferred.errors %}
+                    <p class="help-block">
+                        {% for error in profile_form.plaintext_preferred.errors %}
+                            {{ error|escape }}
+                        {% endfor %}
+                    </p>
+                {% endif %}
+            </div>
+
+            <div class="form-group" >
+                <label for="id_docket_default_order_desc" >
+                    {{ profile_form.docket_default_order_desc }}
+                    Sort dockets in descending order</label>
+                {% if profile_form.docket_default_order_desc.errors %}
+                    <p class="help-block">
+                        {% for error in profile_form.docket_default_order_desc.errors %}
+                            {{ error|escape }}
+                        {% endfor %}
+                    </p>
+                {% endif %}
+            </div>
+
+            <div class="form-group v-offset-below-4">
+                <label for="id_is_tester">
+                    {{ profile_form.is_tester }}
+                    Join the beta testing group to try features before full release</label>
+                {% if profile_form.is_tester.errors %}
+                    <p class="help-block">
+                        {% for error in profile_form.is_tester.errors %}
+                            {{ error|escape }}
+                        {% endfor %}
+                    </p>
+                {% endif %}
+            </div>
+
+            <input type="hidden" value="{{user.username}}" name="user" id="id_user">
+            <button type="submit" class="btn btn-primary btn-lg float-right">Save Changes</button>
+            <a href="{% url "delete_account" %}"><i class="fa fa-trash-o gray"></i>&nbsp;Delete my account&hellip;</a><br>
+            <a href="{% url "take_out" %}"><i class="fa fa-download gray"></i>&nbsp;Export my data&hellip;</a>
+        </form>
+    </div>
+    <div class="col-sm-3"></div>
+{% endblock %}

@@ -15,28 +15,46 @@ from celery.result import AsyncResult
 import csv
 from io import StringIO, BytesIO
 from functools import wraps
-try:
-    from reportlab.lib.pagesizes import letter
-    from reportlab.pdfgen import canvas
-except ImportError:
-    pass
+from cryptography.fernet import Fernet, InvalidToken
 
 # Import Celery OCR task
 try:
-    from celery_worker import ocr_pdf, summarize_legal_document, qa_legal_document, analyze_for_party
+    from celery_worker import ocr_pdf, summarize_legal_document, qa_legal_document, analyze_for_party, monitor_inbox_for_ai_user
 except ImportError:
     ocr_pdf = None  # For local dev if celery_worker not available
     summarize_legal_document = None
     qa_legal_document = None
     analyze_for_party = None
+    monitor_inbox_for_ai_user = None
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "devsecret")
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///paralegal.db'
+# Use Postgres if DATABASE_URL is set, otherwise default to SQLite
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///paralegal.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+FERNET_KEY = os.getenv('FERNET_KEY')
+if not FERNET_KEY:
+    print('WARNING: FERNET_KEY environment variable not set. Sensitive fields will not be encrypted!')
+    fernet = None
+else:
+    fernet = Fernet(FERNET_KEY.encode())
+
+def encrypt_value(value):
+    if not fernet or value is None:
+        return value
+    return fernet.encrypt(value.encode()).decode()
+
+def decrypt_value(value):
+    if not fernet or value is None:
+        return value
+    try:
+        return fernet.decrypt(value.encode()).decode()
+    except (InvalidToken, AttributeError):
+        return value
 
 # User model
 class User(UserMixin, db.Model):
@@ -44,7 +62,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
-    gemini_api_key = db.Column(db.String(256), nullable=True)  # User's Gemini API key
+    _gemini_api_key = db.Column('gemini_api_key', db.String(256), nullable=True)
     is_admin = db.Column(db.Boolean, default=False)
     # Relationships: llm_services, ai_users
 
@@ -53,6 +71,14 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def gemini_api_key(self):
+        return decrypt_value(self._gemini_api_key)
+
+    @gemini_api_key.setter
+    def gemini_api_key(self, value):
+        self._gemini_api_key = encrypt_value(value)
 
 class LegalDocumentResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -71,8 +97,16 @@ class LLMService(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     name = db.Column(db.String(80), nullable=False)
     service_type = db.Column(db.String(32), nullable=False)  # e.g. 'gemini', 'openai', 'anthropic'
-    api_key = db.Column(db.String(256), nullable=False)
+    _api_key = db.Column('api_key', db.String(256), nullable=False)
     user = db.relationship('User', backref=db.backref('llm_services', lazy=True))
+
+    @property
+    def api_key(self):
+        return decrypt_value(self._api_key)
+
+    @api_key.setter
+    def api_key(self, value):
+        self._api_key = encrypt_value(value)
 
 class AIUser(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -95,10 +129,27 @@ class SMTPIMAPProfile(db.Model):
     host = db.Column(db.String(128), nullable=False)
     port = db.Column(db.Integer, nullable=False)
     username = db.Column(db.String(128), nullable=False)
-    password = db.Column(db.String(256), nullable=False)
+    _password = db.Column('password', db.String(256), nullable=False)
     use_ssl = db.Column(db.Boolean, default=True)
     ai_user = db.relationship('AIUser', backref=db.backref('email_profiles', lazy=True))
     user = db.relationship('User', backref=db.backref('email_profiles', lazy=True))
+
+    @property
+    def password(self):
+        return decrypt_value(self._password)
+
+    @password.setter
+    def password(self, value):
+        self._password = encrypt_value(value)
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    type = db.Column(db.String(32), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    read = db.Column(db.Boolean, default=False)
+    user = db.relationship('User', backref=db.backref('notifications', lazy=True))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -290,7 +341,7 @@ def dashboard():
     user_doc_count = sum(1 for d in recent_legal_docs if d.get('user_id') == user_id)
     user_event_count = sum(1 for e in upcoming_events if e.get('user_id') == user_id)
     # Notifications: last 10 results for this user
-    notifications = LegalDocumentResult.query.filter_by(user_id=user_id).order_by(LegalDocumentResult.created_at.desc()).limit(10).all() if user_id else []
+    notifications = Notification.query.filter_by(user_id=user_id, read=False).order_by(Notification.created_at.desc()).limit(10).all() if user_id else []
     # AI users for this user
     ai_users = AIUser.query.filter_by(user_id=current_user.id).all()
     return render_template(
@@ -684,6 +735,77 @@ def delete_email_profile(profile_id):
     db.session.commit()
     flash('Email profile deleted.')
     return redirect(url_for('email_profiles', ai_id=ai_id))
+
+# Helper to get LLM API key and provider for an AI user or LLMService
+
+def get_llm_api_info(ai_user=None, user=None):
+    """
+    Returns (service_type, api_key) for the given AI user or user's default LLM.
+    """
+    if ai_user and ai_user.llm_service:
+        return ai_user.llm_service.service_type, ai_user.llm_service.api_key
+    if user:
+        # Prefer user's Gemini key if set
+        if user.gemini_api_key:
+            return 'gemini', user.gemini_api_key
+        # Fallback: first LLMService
+        llm = LLMService.query.filter_by(user_id=user.id).first()
+        if llm:
+            return llm.service_type, llm.api_key
+    return None, None
+
+@app.route('/share_document/<doc_id>', methods=['POST'])
+@login_required
+def share_document(doc_id):
+    share_with = request.form.get('share_with')
+    # In the future, look up the user and add sharing permissions
+    print(f"User {current_user.username} wants to share doc {doc_id} with {share_with}")
+    flash(f"Document {doc_id} shared with {share_with} (stub).", 'info')
+    return redirect(url_for('dashboard'))
+
+@app.route('/health')
+def health():
+    return jsonify({'status': 'ok'})
+
+@app.route('/sync_calendar', methods=['POST'])
+@login_required
+def sync_calendar():
+    # In the future, sync events to Google Calendar
+    flash('Google Calendar sync (stub) triggered.', 'info')
+    return redirect(url_for('dashboard'))
+
+@app.route('/help')
+def help_page():
+    return render_template('help.html')
+
+@app.route('/feedback', methods=['POST'])
+def feedback():
+    email = request.form.get('email')
+    message = request.form.get('message')
+    print(f'User feedback from {email}: {message}')
+    flash('Thank you for your feedback! We will get back to you soon.', 'success')
+    return redirect(url_for('help_page'))
+
+@app.route('/ai_users/<int:ai_id>/monitor_inbox', methods=['POST'])
+@login_required
+def monitor_inbox(ai_id):
+    monitor_inbox_for_ai_user.delay(ai_id, user_id=current_user.id)
+    flash('Inbox monitoring task started for AI user.', 'info')
+    return redirect(url_for('ai_users'))
+
+@app.route('/notifications/mark_all_read', methods=['POST'])
+@login_required
+def mark_all_notifications_read():
+    Notification.query.filter_by(user_id=current_user.id, read=False).update({'read': True})
+    db.session.commit()
+    flash('All notifications marked as read.', 'success')
+    return redirect(url_for('dashboard'))
+
+@app.errorhandler(500)
+def internal_error(error):
+    import traceback
+    print('Internal server error:', traceback.format_exc())
+    return render_template('500.html'), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True) 

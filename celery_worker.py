@@ -250,4 +250,78 @@ def analyze_for_party(txt_path, party, user_id=None, doc_id=None):
         return analysis_path
     except Exception as e:
         print(f"Legal analysis for {party} failed for {txt_path}: {e}")
-        return None 
+        return None
+
+@celery_app.task
+def monitor_inbox_for_ai_user(ai_user_id, user_id=None):
+    """
+    Connects to the assigned IMAP inbox for the AI user, fetches new emails, processes them, and notifies the user.
+    """
+    if not db:
+        print("DB not available in Celery worker.")
+        return
+    from app import AIUser, SMTPIMAPProfile, User, LegalDocumentResult, Notification
+    from agents.filtering_agent import filter_and_categorize_email
+    ai_user = AIUser.query.get(ai_user_id)
+    if not ai_user:
+        print(f"AIUser {ai_user_id} not found.")
+        return
+    user = User.query.get(ai_user.user_id)
+    # Find IMAP profile for this AI user
+    imap_profile = SMTPIMAPProfile.query.filter_by(ai_user_id=ai_user_id, type='imap').first()
+    if not imap_profile:
+        print(f"No IMAP profile for AIUser {ai_user_id}.")
+        return
+    import imaplib
+    import email
+    from email.header import decode_header
+    processed_count = 0
+    try:
+        mail = imaplib.IMAP4_SSL(imap_profile.host, imap_profile.port)
+        mail.login(imap_profile.username, imap_profile.password)
+        mail.select("inbox")
+        status, messages = mail.search(None, "UNSEEN")
+        email_ids = messages[0].split()
+        for num in email_ids:
+            status, msg_data = mail.fetch(num, "(RFC822)")
+            raw_email = msg_data[0][1]
+            msg = email.message_from_bytes(raw_email)
+            subject, encoding = decode_header(msg.get("Subject"))[0]
+            if isinstance(subject, bytes):
+                subject = subject.decode(encoding if encoding else "utf-8")
+            sender = msg.get("From")
+            # Extract body
+            body = ""
+            if msg.is_multipart():
+                for part in msg.walk():
+                    ctype = part.get_content_type()
+                    cdispo = str(part.get('Content-Disposition'))
+                    if ctype == 'text/plain' and 'attachment' not in cdispo:
+                        body = part.get_payload(decode=True).decode(errors='ignore')
+                        break
+            else:
+                body = msg.get_payload(decode=True).decode(errors='ignore')
+            email_obj = {"subject": subject, "from": sender, "body": body}
+            # Use LLM to categorize
+            result = filter_and_categorize_email(email_obj)
+            # Store as LegalDocumentResult
+            doc_result = LegalDocumentResult(
+                user_id=user.id,
+                doc_id=f"email_{num.decode()}",
+                result_type='email_analysis',
+                content=json.dumps(result)
+            )
+            db.session.add(doc_result)
+            # Create notification
+            notif = Notification(
+                user_id=user.id,
+                type='email_processed',
+                message=f"AI User '{ai_user.name}' processed email '{subject}' from {sender}."
+            )
+            db.session.add(notif)
+            processed_count += 1
+        db.session.commit()
+        print(f"AIUser {ai_user_id} processed {processed_count} new emails.")
+        mail.logout()
+    except Exception as e:
+        print(f"Failed to check/process inbox for AIUser {ai_user_id}: {e}") 

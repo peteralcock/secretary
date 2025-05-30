@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% load cache extras partition_util text_filters %}
+
+{% block canonical %}{% get_canonical_element %}{% endblock %}
+
+{% block sidebar %}{% endblock %}
+
+{% block navbar-o %}active{% endblock %}
+
+{% block title %}
+    {% if show_homepage %}
+        Citation Lookup Tool – CourtListener.com
+    {% else %}
+        {% if none_found %}
+            Citation Not Found (404) – CourtListener.com
+        {% elif too_many %}
+          {{ citation_str }}: Several Citations Found – CourtListener.com
+        {% elif too_many_reporter_variations %}
+          Too many reporter variations – CourtListener.com
+        {% endif %}
+    {% endif %}
+{% endblock %}
+
+{% block og_title %}
+  {% if show_homepage %}
+    Citation Lookup Tool – CourtListener.com
+  {% else %}
+    {% if none_found %}
+      Citation Not Found (404) – CourtListener.com
+    {% elif too_many %}
+      {{ citation_str }}: Several Citations Found – CourtListener.com
+    {% elif too_many_reporter_variations %}
+      Too many reporter variations – CourtListener.com
+    {% endif %}
+  {% endif %}
+{% endblock %}
+
+{% block description %}
+  Use our citation lookup tool to find case law by citation or to browse reporters. Our unique database of reporters and our extensive collection of citations makes for a powerful combination.
+{% endblock %}
+
+{% block og_description %}
+  Use our citation lookup tool to find case law by citation or to browse reporters. Our unique database of reporters and our extensive collection of citations makes for a powerful combination.
+{% endblock %}
+
+{% block content %}
+    {% if show_homepage %}
+      <div class="col-xs-12">
+        <div id="above-main-query" >
+          <h1 class="text-center">Citation Lookup Tool</h1>
+
+          <p class="text-center">If you have a citation you want to look up,
+            put it in here, and we'll look it up.</p>
+        </div>
+        <div id="main-query-box" class="row" >
+          <form action="" method="post" class="form-inline" role="form">
+            {% csrf_token %}
+            <div id="search-container" class="text-center" >
+              <label class="sr-only"  for="id_full_citation" >Look Up</label>
+              <div class="input-group" >
+                <input id="id_full_citation"
+                       class="form-control input-lg"
+                       value="{{ form.reporter.value|default:'' }}"
+                       name="reporter"
+                       autocomplete="off"
+                       placeholder="{{ form.reporter.field.widget.attrs.placeholder }}"
+                       required
+                       type="text" >
+                <span class="input-group-btn" >
+                  <button type="submit"
+                          class="btn btn-lg btn-primary btn-lg"
+                          name="search"
+                          id="search-button"><i class="fa fa-search"></i>&nbsp;
+                    Look It Up
+                  </button>
+                </span>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="col-xs-12" >
+            <h2 class="v-offset-above-4">About this Tool</h2>
+            <p>This tool generates URLs so that you can easily look up a citation that you know. If you're a person that prefers to just hack URLs, you can do that too, using a URL like <code>{% url "citation_redirector" volume="410" reporter="U.S." page="113" %}</code>, which will take you straight to <em>Roe v. Wade</em>. Or you can always just come here and type in a citation that you know.
+            </p>
+            <p>This tool is limited by the citations that we have in our system. As we improve our collection and add citations to records that we have, this tool will automatically work for those records as well.
+            </p>
+            <p>This page is also available as a powerful <a href="{% url "citation_lookup_api" %}">citation lookup API</a>.
+            </p>
+        </div>
+
+        <div class="hidden-sm hidden-xs col-md-1 col-lg-2"></div>
+
+        <div class="col-xs-12">
+          <div class="row">
+            <div class="hidden-sm hidden-xs col-md-1 col-lg-2"></div>
+            <div class="col-xs-12 col-md-10 col-lg-8">
+              <h2>Browse Citations</h2>
+              <div class="row">
+                {% cache 86400 reporters_list %}
+                {% for row in reporter_dict.items|rows_distributed:3 %}
+                  <div class="col-xs-4">
+                    {% for name, abbrevs in row %}
+                        {% if abbrevs|length == 1 %}
+                          <h4><a href="{% url "citation_redirector" reporter=abbrevs.0 %}">{{ name }}</a></h4>
+                        {% else %}
+                          <h4 class="bottom">{{ name }}</h4>
+                          <ul>
+                            {% for abbrev in abbrevs %}
+                              <li><a href="{% url "citation_redirector" reporter=abbrev %}">{{ abbrev }}</a></li>
+                            {% endfor %}
+                          </ul>
+                        {% endif %}
+                    {% endfor %}
+
+                  </div>
+                {% endfor %}
+              {% endcache %}
+              </div>
+            </div>
+            <div class="hidden-sm hidden-xs col-md-1 col-lg-2"></div>
+          </div>
+        </div>
+      </div>
+    {% else %}
+        <div class="col-md-3"></div>
+        <div class="col-md-6" id="citation-redirect">
+            {% if none_found %}
+                <h1>Unable to Find Citation "{{ citation_str }}"</h1>
+                <p>This usually happens because although we might have an opinion in
+                    CourtListener, we might lack its official citation or an
+                    official parallel citation.
+                </p>
+                <p>In most jurisdictions, citations are unavailable at the time of
+                    publication, making this a particularly thorny problem.
+                </p>
+                <p class="v-offset-above-2">
+                  <a href="{% url "citation_homepage" %}"
+                     class="btn btn-primary btn-lg">Look Up Another Citation</a>
+                </p>
+            {% elif too_many %}
+                <h1 class="v-offset-below-2">Found More than One Result for "{{ citation_str|nbsp }}"</h1>
+                <ul>
+                    {% for cluster in clusters %}
+                        <li>
+                            <a href="{{ cluster.get_absolute_url }}"
+                               {% if cluster.blocked %}rel="nofollow"{% endif %}>{{ cluster.caption|safe|v_wrapper }}</a>
+                            <br>
+                            {{ cluster.docket.court }} |
+                            {{ cluster.date_filed }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% elif too_many_reporter_variations %}
+              <h1 class="v-offset-below-2">Found More Than One Possible Reporter for "{{ reporter|nbsp }}"</h1>
+              <p>This reporter could be a variation of {{ possible_canonicals|oxford_join:"or" }}.</p>
+              <p>Unfortunately, we have no way of knowing which.</p>
+              <p class="v-offset-above-2">
+                <a href="{% url "citation_homepage" %}"
+                   class="btn btn-primary btn-lg">Look Up Another Citation</a>
+              </p>
+            {% endif %}
+        </div>
+        <div class="col-md-3"></div>
+    {% endif %}
+{% endblock %}

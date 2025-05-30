@@ -1,0 +1,79 @@
+{% comment %}
+ Two tricks:
+    1. Ensure that the correct option is selected at all times.
+    2. Hide the options that don't apply to different tabs.
+{% endcomment %}
+
+<div class="form-group">
+    <label for="id_order_by">Search Results Order:</label>
+    {% with search_form.type.value as v %}
+    <select class="external-input form-control" id="id_order_by" name="order_by">
+        <option value="score desc"
+                {% if search_form.order_by.value == "score desc" %}
+                selected="selected"
+                {% endif %}>Relevance</option>
+
+        {% if v == SEARCH_TYPES.OPINION or v == SEARCH_TYPES.RECAP or v == SEARCH_TYPES.DOCKETS or v == SEARCH_TYPES.PARENTHETICAL %}
+            <option value="dateFiled desc"
+                    {% if search_form.order_by.value == "dateFiled desc" %}
+                    selected="selected"
+                    {% endif %}>Newest Cases First</option>
+            <option value="dateFiled asc"
+                    {% if search_form.order_by.value == "dateFiled asc" %}
+                    selected="selected"
+                    {% endif %}>Oldest Cases First</option>
+        {% endif %}
+    		{% if v == SEARCH_TYPES.RECAP or v == SEARCH_TYPES.DOCKETS %}
+          <option value="entry_date_filed desc"
+                  {% if search_form.order_by.value == "entry_date_filed desc" %}
+                  selected="selected"
+                  {% endif %}>Newest Documents First</option>
+          <option value="entry_date_filed asc"
+                  {% if search_form.order_by.value == "entry_date_filed asc" %}
+                  selected="selected"
+                  {% endif %}>Oldest Documents First</option>
+        {% endif %}
+
+        {% if v == SEARCH_TYPES.OPINION %}
+            <option value="citeCount desc"
+                    {% if search_form.order_by.value == "citeCount desc" %}
+                    selected="selected"
+                    {% endif %}>Most Cited First</option>
+            <option value="citeCount asc"
+                    {% if search_form.order_by.value == "citeCount asc" %}
+                    selected="selected"
+                    {% endif %}>Least Cited First</option>
+        {% endif %}
+
+        {% if v == SEARCH_TYPES.ORAL_ARGUMENT %}
+            <option value="dateArgued desc"
+                    {% if search_form.order_by.value == "dateArgued desc" %}
+                        selected="selected"
+                    {% endif %}>Newest First</option>
+            <option value="dateArgued asc"
+                    {% if search_form.order_by.value == "dateArgued asc" %}
+                        selected="selected"
+                    {% endif %}>Oldest First</option>
+        {% endif %}
+
+        {% if v == SEARCH_TYPES.PEOPLE %}
+            <option value="name_reverse asc"
+                    {% if search_form.order_by.value == "name_reverse asc" %}
+                        selected="selected"
+                    {% endif %}>Last Name</option>
+            <option value="dob desc,name_reverse asc"
+                    {% if search_form.order_by.value == "dob desc,name_reverse asc" %}
+                        selected="selected"
+                    {% endif %}>Most Recently Born</option>
+            <option value="dob asc,name_reverse asc"
+                    {% if search_form.order_by.value == "dob asc,name_reverse asc" %}
+                        selected="selected"
+                    {% endif %}>Least Recently Born</option>
+            <option value="dod desc,name_reverse asc"
+                    {% if search_form.order_by.value == "dod desc,name_reverse asc" %}
+                        selected="selected"
+                    {% endif %}>Most Recently Deceased</option>
+        {% endif %}
+    </select>
+    {% endwith %}
+</div>
